@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第八课 · retro 复盘环境</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .chain { font-family: "Cascadia Code", Consolas, monospace; font-size: 0.85rem; background: var(--code-bg); padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; line-height: 1.8; }
+  .chain b { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0008 · 约 12 分钟</p>
+<h1>retro：复盘环境，不复盘代码</h1>
+<p class="meta">
+  前置：<a href="./0007-wayfinder-map.html">0007 wayfinder 决策地图</a>（本课顺带补讲 0006 的洞）｜
+  配套阅读：<a href="../03-engineering-用户调用篇.md" target="_blank">03 · retro 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：待定（告诉我想深入哪块）
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  读完结这页，你能说清 retro 的<b>七个类别各把修复落在哪里</b>，并且拿到 session 里任何一个挣扎时刻，
+  能判断它该变成 <b>check、pointer 还是 standard</b>——以及为什么"往 AGENTS.md 加一行"几乎总是错的。
+</div>
+
+<h2>0. 热身：先回忆上一课（检索练习）</h2>
+<p>不翻回去，凭记忆答。答错正好暴露要补的洞。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 1：wayfinder 和 grill-with-docs 的分界线是什么？</p>
+  <button>代码量到底有多大规模</button>
+  <button data-correct>一个 session 装不装得下</button>
+  <button>是不是全新的绿地项目</button>
+  <button>issue tracker 用哪一种</button>
+  <p class="explain">✅ session 数，不是项目大小：装得下就 grill（更便宜更好），装不下才建图。绿地也不是必要条件——legacy 代码库上"这里已经什么是真的"本身就是雾。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 2："支付用 Stripe 还是自建？——问题一句话说得清，但要等'目标市场'那张票先定。"这条该进哪一格？</p>
+  <button>写进 Not yet specified</button>
+  <button>归入 Out of scope</button>
+  <button data-correct>开一张票、连阻塞边</button>
+  <button>当场顺手解决掉</button>
+  <p class="explain">✅ fog vs ticket 的判据是"现在能不能把<b>问题</b>说 sharp"，不是"现在能不能<b>回答</b>"。已 sharp 但被阻塞 → 照样开票，blocking 边排在后面。</p>
+</div>
+
+<h2>1. 它在链条里的位置：最后一步</h2>
+<div class="chain">grill-with-docs → to-spec → to-tickets → implement → code-review → <b>retro</b></div>
+<p>
+  主线走到头，retro 回头读一个 coding session 的记录（默认<b>当前 session</b>——挣扎还在 context window 里，
+  是最佳情形；session 太长就 clear，让新的 <code>/retro</code> 指向旧 session 的 log），
+  找出 agent 挣扎的时刻，然后提议改进 agent 的 <b>environment</b>。
+</p>
+<ul>
+  <li><b>改环境，不改代码</b>：bug 发出去了、找一个文件花了二十次 tool call、reviewer 漏了规矩——它都不直接修。它问的是：<b>仓库里的什么东西让这些事发生了？</b></li>
+  <li><b>只提议，不动手</b>：按严重度从高到低列候选，你挑了才落地。这是刻意的——有用户被"自动装上、拦截好改动"的 auto-hooks 坑过。user-invoked，模型不会自己想到跑它。</li>
+  <li><b>时机</b>：session 比它应有的<b>更艰难</b>之后。顺畅的 session 没什么可教，每次都跑只会"生产没人需要的规则"。</li>
+</ul>
+<p>和邻居的分界：<b>code-review</b> 评代码（这次产出对不对）；<b>improve-codebase-architecture</b> 只要代码就能跑、改代码结构；<b>retro</b> 要 session 历史、改环境。三者互补，谁也不替代谁。</p>
+
+<h2>2. 四步流程</h2>
+<ol>
+  <li><b>先调 <code>writing-for-agents</code></b> 拿写作风格——它提议的每个 steering 文件都得按元规范写；</li>
+  <li><b>读 primary sources</b>：用户指定的 session，或当前 session 的记录；</li>
+  <li>按<b>七个类别</b>找候选（下一节）；</li>
+  <li>按<b>严重度</b>从高到低呈现，停手等人类挑选。</li>
+</ol>
+
+<h2>3. 七个类别：出了什么事 → 修在哪</h2>
+<table>
+  <tr><th>Session 里出了什么</th><th>修复落点</th></tr>
+  <tr><td>找文件/事实花太久</td><td><b>Navigation pointer</b>（从它已经在读的文件指过去）</td></tr>
+  <tr><td>犯了工具本可抓住的错</td><td><b>Automated check</b>：lint 规则 / 类型 / 测试 / pre-commit / CI</td></tr>
+  <tr><td>Reviewer 漏了 judgement call</td><td><code>CODING_STANDARDS.md</code> 加规则（给 reviewer 读）</td></tr>
+  <tr><td><code>AGENTS.md</code> 太大</td><td>把 steering <b>搬出去</b>，进 standards 或 checks</td></tr>
+  <tr><td>某次 tool call 又贵又没用</td><td>精简或替换工具</td></tr>
+  <tr><td>steering 文件里有不改行为的行</td><td>删 <b>no-op</b></td></tr>
+  <tr><td>关键信息 agent 够不着</td><td><b>扩访问</b>：tee dev server 日志、第三方 readonly</td></tr>
+</table>
+<p>三个类别埋着深一层的纪律：</p>
+<ul>
+  <li><b>Automated checks——先读仓库已有的</b>。发明新 check 之前，先读仓库自己的 check 命令（<code>package.json</code> 的 lint/check scripts、CI workflow）。一个<b>已存在但没接线、或悄悄坏掉</b>的 check，本身就是 finding——接线，不是重建。更狠的：仓库<b>完全没有 guardrail</b>（既无 pre-commit 也没有 CI 跑 lint/typecheck/test）这件事本身就是一个 finding——"an un-linted repo is a standing missed opportunity, not a neutral default"。</li>
+  <li><b>Coding standards——落笔之前先分类</b>。violation 分两型：<b>mechanical</b>（固定语法模式、banned API、import 形状、文件位置规则）→ deterministic check，<b>句号</b>——"a check can fail and a sentence in a standards file can't"（check 会红，standards 文件里的一句话永远不会）。只有真正的 <b>judgement call</b>（跨文件一致性、"跟周围风格匹配"，任何 guardrail 都替代不了的）才配写成 prose。"Default to building the check over writing the rule."</li>
+  <li><b>Global AGENTS.md——搬运，不是增删</b>。这个类别专找"住在 AGENTS.md 里、本该住在 standards 或 check 里的 steering"。</li>
+</ul>
+
+<h2>4. 两条核心设计思想</h2>
+<h3>① 标准属于 reviewer，不属于 implementer</h3>
+<p>
+  所有工作分两段：implementation agent 的 <b>context 压力最大</b>——探索、写码、调试全压在它身上；
+  review agent 压力<b>最小</b>——只拿一个 diff。所以新规则要放<b>有空间执行它的地方</b>：review。
+  这正是 <a href="./0006-code-review-two-axes.html">0006</a> 埋的伏笔兑现处：<b>retro 是 Standards 轴的喂养者</b>
+  ——"机械错误变成确定性检查，判断题变成 coding standards"，下次构建从更好的环境开始，主线闭环闭在这里。
+</p>
+<h3>② "往 AGENTS.md 加一行"几乎总是错误的修复位置</h3>
+<p>
+  docs 里被问最多的问题就是它（"The agent keeps making the same mistake. Should I add a line to
+  CLAUDE.md?"——"Usually not"）。三条理由：那行字<b>无条件</b>加载进之后的每个 session
+  （十个 session 只有一个用得上，另外九个都在付利息）；它<b>稀释</b>文件里其他内容的权重；
+  它随代码演化<b>悄悄过期</b>。AGENTS.md 只该放 <b>navigation pointers</b>。
+  同理，<b>retro 不是 memory system</b>——它不记录发生了什么，它改环境让错误<b>不可能再发生</b>。
+</p>
+<p>文件角色速查：<code>CLAUDE.md</code>/<code>AGENTS.md</code> 极度节制、只放 pointer；<code>CODING_STANDARDS.md</code> <b>review 时读</b>、不是 implement 时读，超 1000 行就往 docs 加 pointer；先找已有 docs 再写新的。</p>
+
+<h2>5. docs 页诚实记录的弱点</h2>
+<ul>
+  <li><b>不会自己清理自己</b>：它只看一个 session，看不到"上个月提议的 lint 规则现在是否在好代码上疯狂误报"。check 的 pruning 永远是你的活——"A rule that fires constantly on good code is the sign to remove it."</li>
+  <li><b>最强批评：编造 generic advice 填类别</b>。用户原话："工作一结束，AI 倾向忘掉 session 中间的挣扎，转而编造通用建议来满足 retro 的类别。"防线一条：<b>每个候选必须指回 session 里的一个具体时刻</b>——指不回去的直接丢弃；严重度排序也只当初稿（安静但昂贵的错，可能排在聒噪但便宜的错下面）。</li>
+  <li><b>提议的 check 也是代码</b>：先在仓库上试跑，再让它拦 merge。</li>
+</ul>
+
+<h2>6. 实操：这个挣扎该变成什么？</h2>
+<p>五个时刻全来自同一个艰难 session。每题选出修复落点。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 1：agent 三处 import 了 moment，仓库其实早定了 dayjs，reviewer 也没拦住。</p>
+  <button>写进 CODING_STANDARDS.md</button>
+  <button>往 AGENTS.md 加一行禁令</button>
+  <button data-correct>加一条 linter banned-API 规则</button>
+  <button>提醒 agent 下次注意</button>
+  <p class="explain">✅ banned API = mechanical（固定语法模式）→ deterministic check，句号。"a check can fail and a sentence in a standards file can't"。AGENTS.md 那行还会进每个 session 付利息。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 2：agent 花 18 次 tool call 才找到真正生效的 env override 文件（藏在 packages/app 里，README 只字未提）。</p>
+  <button>加一条 CI 检查任务</button>
+  <button data-correct>从它已读的文件加一行指针</button>
+  <button>写进 CODING_STANDARDS.md</button>
+  <button>给它扩第三方访问</button>
+  <p class="explain">✅ 找信息费劲 = Navigation 类别：从它已经在读的文件（README、package.json）里加一行 navigation pointer，指向藏起来的事实。十八次 tool call 下次变一次。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 3：错误处理风格分裂——有的 early return、有的三层嵌套 if。reviewer 该管，但没有 linter 写得出这条规则。</p>
+  <button>加一个 pre-commit 钩子</button>
+  <button data-correct>CODING_STANDARDS.md 给 reviewer 加规则</button>
+  <button>AGENTS.md 里写风格说明</button>
+  <button>换一个更强的 linter</button>
+  <p class="explain">✅ 真正的 judgement call（"跟周围风格一致"，任何 guardrail 都替代不了）才配写成 prose；且 CODING_STANDARDS.md 是 review 时读、不是 implement 时读——规则放在有空间执行它的地方。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 4：agent 干耗半小时调试，因为 dev server 的报错只打在人类终端里，它根本看不见。</p>
+  <button data-correct>把 dev server 日志 tee 到文件给它读</button>
+  <button>加一行 navigation 指针</button>
+  <button>删掉 steering 里的 no-op</button>
+  <button>新增一条 CI 任务</button>
+  <p class="explain">✅ 关键信息够不着 = Information access：tee dev server 日志到文件、给第三方服务 readonly。信息给到了，挣扎直接消失——不需要任何"规则"。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 5：AGENTS.md 里躺着一行 "Be careful with the auth module"——no-op 测试做过，agent 行为从没因它改变。</p>
+  <button>换成语气更重的措辞</button>
+  <button data-correct>删掉这一整行</button>
+  <button>挪进 CODING_STANDARDS.md</button>
+  <button>拆成三条子规则</button>
+  <p class="explain">✅ no-op 测试：删掉这行，行为变吗？不变 → <b>删整句</b>（不是修剪措辞）。对已经读过一切的读者，模糊告诫是空转；具体危险要么写成 check，要么写成具体规则。</p>
+</div>
+
+<h2>7. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. retro 改进的对象是什么？</p>
+  <button>session 产出的代码</button>
+  <button>agent 执行的速度</button>
+  <button>用户提问的方式</button>
+  <button data-correct>agent 工作的环境</button>
+  <p class="explain">✅ 改环境、不改代码、只提议、不动手。代码质量找 code-review；代码结构找 improve-codebase-architecture（它只要代码，retro 要 session 历史）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. mechanical 违规（比如 banned API）的修复落点是？</p>
+  <button>CODING_STANDARDS 里一条</button>
+  <button data-correct>一个会失败的确定性检查</button>
+  <button>AGENTS.md 里加一行</button>
+  <button>复盘报告里记一笔</button>
+  <p class="explain">✅ "a check can fail and a sentence in a standards file can't"。prose 只留给 linter 永远顶不上的 judgement call。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. 为什么编码标准由 review agent 来执法？（0006 补讲：你热身错的正是这个原理）</p>
+  <button>它写代码更加漂亮</button>
+  <button>它的时薪收费更便宜</button>
+  <button data-correct>它的 context 压力最小</button>
+  <button>它能自动安装钩子</button>
+  <p class="explain">✅ implementer 探索+写码+调试，context 压力最大；reviewer 只拿一个 diff。规则放在有空间执行它的地方——和 0006 两轴隔离是同一条原理：裁定要分开、且各有干净的 context。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. "agent 反复犯同一个错，往 AGENTS.md 加一行规则"——哪句评价对？</p>
+  <button data-correct>几乎总是错误的落点</button>
+  <button>最省事正确的修法</button>
+  <button>等价于一条检查</button>
+  <button>和加检查差不多</button>
+  <p class="explain">✅ 那行字无条件进每个 session（十个里九个付利息）、稀释其他内容、随代码过期。AGENTS.md 只放 navigation pointers；mechanical → check，judgement → standards。</p>
+</div>
+
+<h2>8. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/retro/SKILL.md" target="_blank">retro 的 SKILL.md</a>
+  ——四步流程、七类别原文（每个类别自带 _Use when_ 触发条件）和文件角色 Reference 节。
+  真实失败与边界（不清理自己、编造 generic advice、只提议的由来）都在
+  <a href="https://github.com/mattpocock/skills/blob/main/docs/engineering/retro.md" target="_blank">docs 页的 Common questions</a>。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："拿我们这个教学 session 跑一次 retro 演练——我 0006/0007 热身答错这件事，环境该改什么？"、
+  "检查我某个仓库有没有 guardrail：pre-commit 和 CI 各跑了什么？"、
+  "把我 AGENTS.md 逐行做 no-op 测试"——或者在一个艰难 session 结束后真的跑一次
+  <code>/retro</code>，对照本课看候选是不是每条都能指回具体时刻。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0007-wayfinder-map.html">0007 wayfinder 决策地图</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

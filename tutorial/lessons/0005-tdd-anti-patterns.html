@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第五课 · tdd 三大反模式实操</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  pre.example { margin: 0.4rem 0 0.7rem; font-size: 0.82rem; }
+  .anti { border: 1px solid var(--rule); border-radius: 10px; padding: 0.85rem 1.1rem; margin: 1rem 0; background: #fff; }
+  .anti h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+  .anti .sym { font-size: 0.86rem; color: var(--ink-soft); }
+  .anti .sym b { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0005 · 约 12 分钟</p>
+<h1>tdd 三大反模式：亲手挑出坏测试</h1>
+<p class="meta">
+  前置：<a href="./0004-deep-module-vocabulary.html">0004 深模块词汇</a>（用到 seam 概念） ｜
+  配套阅读：<a href="../04-engineering-模型调用篇.md" target="_blank">04 · tdd 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：待定（告诉我想深入哪块）
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  读完这页，任何一段测试代码放到你面前，你都能说出它是<b>三大反模式里的哪一种</b>（或者根本不是反模式），
+  以及怎么改。这是 tdd skill 里最值钱的部分：<b>让测试套件一文不值的失败模式，全在这三个名字底下</b>。
+</div>
+
+<h2>1. tdd 在这个仓库里的角色</h2>
+<p>
+  <code>/tdd</code> 是 <b>reference（参考规范），不是 driver</b>：它由 <code>/implement</code>（逐票）和
+  <code>/implement-spec</code>（每个 implementer subagent 内部）驱动。它定义三件事：
+  什么是好测试、测试住在哪（seams）、循环怎么转。
+</p>
+<table>
+  <tr><th>循环规则</th><th>含义</th></tr>
+  <tr><td><b>Red before green</b></td><td>先写失败测试，再写<b>恰好够让它通过</b>的代码；不为未来 anticipation</td></tr>
+  <tr><td><b>One slice at a time</b></td><td>一个 cycle = 一个 seam + 一个测试 + 一个最小实现；每个测试是 <b>tracer bullet</b>（响应上一轮所学的端到端实弹）</td></tr>
+  <tr><td><b>Refactoring 不在循环内</b></td><td>2026 年 6 月被移除——agents 几乎从不做那一步；重构归 <code>/code-review</code>（带 Fowler smell baseline）。（趣闻：description 里的 "red-green-refactor" 触发词保留了，是个已知的不一致）</td></tr>
+</table>
+
+<h2>2. 三大反模式</h2>
+
+<div class="anti">
+  <h3>① Implementation-coupled（实现耦合）</h3>
+  <p class="sym">mock 内部 collaborator · 测私有方法 · <b>旁路验证</b>（查 DB 而非用接口）<br>
+  <b>征兆：重构时行为没变，测试却红了。</b>好测试的判据是"代码可以整个换掉，测试不该跟着变"。</p>
+</div>
+
+<div class="anti">
+  <h3>② Tautological（同义反复）</h3>
+  <p class="sym">断言的期望值<b>用代码自己的方式重算</b>——构造上必然通过，永远无法与代码不一致。<br>
+  <b>修法：期望值来自独立 truth</b>（known-good 字面量、worked example、spec）。</p>
+</div>
+
+<div class="anti">
+  <h3>③ Horizontal slicing（水平切片）</h3>
+  <p class="sym">先写<b>全部</b>测试再写<b>全部</b>实现——批量测试验证的是<b>想象中的行为</b>，在理解实现之前就锁死了测试结构。<br>
+  <b>修法：一次一个 slice</b>，让每个测试响应上一轮所学（和 <code>/to-tickets</code> 反对横切是同一个道理）。</p>
+</div>
+
+<div class="callout">
+  <span class="label">总纲 + 三问自检</span>
+  好测试是<b>对行为的独立见证，一片一片地承诺</b>。三个反模式分别打碎其中一个词：
+  看错位置（实现耦合）、标准不独立（同义反复）、节奏不对（水平切片）。
+  拿到任何测试，问三句：
+  ① <b>实现整个换掉（行为不变），它还绿吗？</b> 不绿 → 实现耦合。
+  ② <b>期望值从哪来？</b> 复跑实现的逻辑或产物 → 同义反复。
+  ③ <b>这批测试是理解实现之前一次写完的吗？</b> 是 → 水平切片。
+</div>
+
+<h2>3. 挑错五连练</h2>
+<p>每段代码：它是哪个反模式？还是根本没问题？先自己判断，再点击。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 1：</p>
+  <pre class="example"><code>test('add sums numbers', () => {
+  expect(add(2, 3)).toBe(2 + 3);
+});</code></pre>
+  <button>实现耦合型</button>
+  <button>水平切片型</button>
+  <button data-correct>同义反复型</button>
+  <button>不是反模式</button>
+  <p class="explain">✅ 期望值 <code>2 + 3</code> 是<b>现场推导</b>出来的，不是引用一个独立标准答案——同义反复的最轻形态。JS 引擎会把它算成 5，所以这一个测试侥幸能抓到手误；但这个形式一旦养成，很快滑向真正的恒真式（<code>toBe(a + b)</code>、期望侧复跑实现的逻辑）。修法：<code>expect(add(2, 3)).toBe(5)</code>——5 是独立字面量，写着"我就知道答案是 5"的承诺。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 2：</p>
+  <pre class="example"><code>test('createUser saves to database', async () => {
+  await createUser({ name: 'Ann' });
+  const rows = await db.query('SELECT * FROM users');
+  expect(rows.length).toBe(1);   // 直接查库验证
+});</code></pre>
+  <button data-correct>实现耦合型</button>
+  <button>同义反复型</button>
+  <button>水平切片型</button>
+  <button>不是反模式</button>
+  <p class="explain">✅ <b>旁路验证</b>：绕过 public interface 伸进存储层。哪天你把存储换成别的（行为完全不变），这个测试就红了——征兆完全吻合。对照 tests.md 里的 GOOD 版本：<code>createUser makes user retrievable</code>，用 <code>getUserByName('Ann')</code> 经<b>同一个接口</b>取回来验证。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 3：</p>
+  <pre class="example"><code>test('checkout validates the cart', () => {
+  const spy = jest.spyOn(internals, 'validateCart'); // internals 是模块私有
+  checkout(cart);
+  expect(spy).toHaveBeenCalled();
+});</code></pre>
+  <button>同义反复型</button>
+  <button>水平切片型</button>
+  <button>不是反模式</button>
+  <button data-correct>实现耦合型</button>
+  <p class="explain">✅ 两罪并罚：<b>mock 内部 collaborator</b> + 验证"内部调用过什么"而非"外部发生了什么行为"。mocking 规则：只在<b>系统边界</b> mock（外部 API、时间、随机性）；绝不 mock 自己的模块。行为版写法：给一个空地址的 cart，断言 checkout 返回/抛出可观察的校验错误。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 4：</p>
+  <pre class="example"><code>// sprint 计划：
+// 第 1 周：写完全部 24 个测试
+//   （schema 层 8 个、API 层 8 个、UI 层 8 个）
+// 第 2 周：开始实现，逐个让测试变绿</code></pre>
+  <button>同义反复型</button>
+  <button data-correct>水平切片型</button>
+  <button>实现耦合型</button>
+  <button>不是反模式</button>
+  <p class="explain">✅ 双重横切：先全部测试后全部实现（批量测试验证想象中的行为），且按<b>技术层</b>分组（和 <code>/to-tickets</code> 反对横切工单同理）。修法：一次一个垂直 slice——schema + API + UI + 测试一起做穿一条用户可面对的行为。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 5：</p>
+  <pre class="example"><code>test('createUser makes user retrievable', async () => {
+  await createUser({ name: 'Ann' });
+  const user = await getUserByName('Ann'); // 同一个 public interface
+  expect(user.name).toBe('Ann');          // 独立字面量
+});</code></pre>
+  <button>实现耦合型</button>
+  <button>水平切片型</button>
+  <button data-correct>不是反模式</button>
+  <button>同义反复型</button>
+  <p class="explain">✅ 这是 GOOD 范本（tests.md 原例的变体）：经<b>同一个 public interface</b> 验证行为、期望值是独立字面量、读起来像 specification。实现整个换掉（换个存储、换个算法），它照样过。</p>
+</div>
+
+<h2>4. Seam 纪律：一条三段闭环</h2>
+<blockquote>
+  <code>/to-spec</code> 与你约定 seam（理想数量是<b>一</b>，尽可能高）→
+  <code>/tdd</code> 只在约定的 seam 写测试（"No test is written at an unconfirmed seam"）→
+  <code>/code-review</code> 检查没人绕过约定。
+  两端都过<b>同一份文档</b>——所以 seam 对话必须在 spec 阶段认真完成。
+</blockquote>
+<p>
+  这也是上一课 "interface 即 test surface" 的落地：想测到 interface 之外 = 模块形状不对。
+  当 interface 本身的形状成为问题，tdd 会调 <code>/codebase-design</code> 取词汇——它是参考，不是要跑的 session。
+</p>
+
+<h2>5. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. 红绿循环里"green"的实现应该写多少？</p>
+  <button data-correct>恰好够让测试通过</button>
+  <button>预见未来需求扩展</button>
+  <button>完整覆盖全部边界</button>
+  <button>带上抽象保持整洁</button>
+  <p class="explain">✅ "先写失败测试，再写恰好够让它通过的代码；不为未来的测试 anticipation、不加投机功能。"过剩的实现和测试一样，都是锁死想象的东西。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. "重构时行为没变、测试却红了"是哪个反模式的征兆？</p>
+  <button>同义反复型</button>
+  <button>水平切片型</button>
+  <button data-correct>实现耦合型</button>
+  <button>不是反模式</button>
+  <p class="explain">✅ 实现耦合的标志性征兆：测试耦合了实现细节（mock 内部、旁路验证），实现一换测试就碎。好测试的判据是"代码可以整个换掉，测试不该跟着变"。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. tautological 测试为什么永远抓不到 bug？</p>
+  <button>因为测试根本没有断言</button>
+  <button data-correct>因为期望值由代码重算</button>
+  <button>因为测试运行速度太慢</button>
+  <button>因为断言数量写得太少</button>
+  <p class="explain">✅ 期望值用和实现相同的运算得出——代码错，期望值跟着错，测试构造上必然通过。修法：期望值来自独立 truth（字面量、worked example、spec）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. mocking 的边界规则是什么？</p>
+  <button>任何依赖都应该被替换</button>
+  <button>内部模块要优先替换掉</button>
+  <button>任何依赖都不该被替换</button>
+  <button data-correct>只替换系统边界外依赖</button>
+  <p class="explain">✅ 只在系统边界 mock：外部 API（支付、邮件）、时间、随机性；绝不 mock 自己的类/模块/内部 collaborator。配套偏好：<b>SDK 式接口而非通用 fetcher</b>（每个外部操作一个具体函数，每个 mock 只返回一种 shape）。</p>
+</div>
+
+<h2>6. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/tdd/SKILL.md" target="_blank">tdd 的 SKILL.md</a>
+  和同目录的 <code>tests.md</code>（GOOD/BAD 对照表，练习 2 和 5 都来自那里）、<code>mocking.md</code>（边界规则全文）。
+  三个文件加起来不到十分钟，是这三条纪律的唯一权威来源。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："拿我项目里最重的三个测试文件，陪我逐个过一遍三大反模式"、
+  "SDK 式接口和通用 fetcher 的对照例子给我看看"、"为什么 refactor 步骤被移除了？"。
+  也可以在下次构建时观察 <code>/implement</code> 驱动的 tdd 是怎么一次只走一个 slice 的。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0004-deep-module-vocabulary.html">0004 深模块词汇专题</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

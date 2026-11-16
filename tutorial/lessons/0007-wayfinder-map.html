@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第七课 · wayfinder 决策地图</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .mapviz { border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; margin: 1.25rem 0; background: #fff; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 0.88rem; }
+  .mapviz .mv-title { padding: 0.55rem 1.1rem; background: var(--code-bg); border-bottom: 1px solid var(--rule); font-weight: 700; }
+  .mapviz .mv-row { display: grid; grid-template-columns: 11rem 1fr; border-bottom: 1px solid var(--rule); }
+  .mapviz .mv-row:last-child { border-bottom: none; }
+  .mapviz .mv-key { padding: 0.55rem 1.1rem; font-weight: 700; color: var(--accent); border-right: 1px dashed var(--rule); }
+  .mapviz .mv-val { padding: 0.55rem 1.1rem; color: var(--ink-soft); }
+  .mapviz .mv-row.fog { background: repeating-linear-gradient(45deg, #faf8f4, #faf8f4 6px, #f1ece3 6px, #f1ece3 12px); }
+  @media (max-width: 640px) { .mapviz .mv-row { grid-template-columns: 1fr; } .mapviz .mv-key { border-right: none; border-bottom: 1px dashed var(--rule); } }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0007 · 约 12 分钟</p>
+<h1>wayfinder：为迷雾工程绘制决策地图</h1>
+<p class="meta">
+  前置：<a href="./0006-code-review-two-axes.html">0006 code-review 双轴拆解</a> ｜
+  配套阅读：<a href="../03-engineering-用户调用篇.md" target="_blank">03 · wayfinder 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：待定（告诉我想深入哪块）
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  读完结这页，你能说清 <b>map 的五节结构、四种 decision ticket 各自的触发判据、
+  fog 和 ticket 的分界线</b>——并且拿到任何一个待定事项，能判断它该开票、该进雾，
+  还是根本在图外。
+</div>
+
+<h2>0. 热身：先回忆上一课（检索练习）</h2>
+<p>不翻回去，凭记忆答。答错正好暴露要补的洞。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 1：两根轴为什么要跑在互相隔离的子代理里？</p>
+  <button>为了两份报告都更省钱</button>
+  <button data-correct>通过一轴可能挂掉另一轴</button>
+  <button>为了适配各家的托管平台</button>
+  <button>为了评审的速度更加快</button>
+  <p class="explain">✅ 混合裁定会让通过的一轴掩盖挂掉的那轴；隔离 + 并排呈现是防遮蔽的全部意义（顺带防"同 context 评审自己"的确认偏误）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 2：Spec 轴找不到源头 issue 时该怎么办？</p>
+  <button>从代码里反推出需求</button>
+  <button>两轴合并成单一报告</button>
+  <button>拒绝评审并直接退出</button>
+  <button data-correct>跳过并声明没有规格</button>
+  <p class="explain">✅ 报告 "no spec available"，只跑 Standards 轴——"绝不从代码反推需求"：把实现读成需求，等于拿学生答案当标准答案。</p>
+</div>
+
+<h2>1. 它在链条里的位置：第三条匝道</h2>
+<p>
+  <a href="./0002-main-flow-walkthrough.html">0002</a> 埋过一个伏笔："什么时候该用 wayfinder？"
+  现在回收。主线匝道三件套：<code>/triage</code>（外来需求）、<code>/diagnosing-bugs</code>（东西坏了）、
+  <code>/wayfinder</code>（迷雾）。它是全集里<b>最重</b>的流程，所以触发条件最窄，就两条：
+</p>
+<ul>
+  <li>工程大到<b>一个 agent session 装不下</b>——分界线就是 session 数：
+  grill-with-docs 管 single-session planning，wayfinder 管 multi-session planning；</li>
+  <li>通往 <b>destination</b>（目的地）的路<b>还看不见</b>——被雾包着。</li>
+</ul>
+<p>
+  两种调用模式：<b>Chart the map</b>（一次：把图画出来，然后停——"charting is one session's work;
+  it hand-resolves nothing"）和 <b>Work through the map</b>（之后每个 session：claim 一张票、解决它、关掉它）。
+  出口：地图清空时 <b>"it hands off, it doesn't build"</b>——在
+  <code>/to-spec #&lt;map_issue&gt;</code> 汇回主线，把散落的决策收拢成可构建的规格。
+</p>
+
+<h2>2. The Map：索引，不是仓库</h2>
+<p>
+  Map 就是 issue tracker 上一个 label 为 <code>wayfinder:map</code> 的 issue，票是它的 child issues。
+  核心铁律：<b>"a decision lives in exactly one place, its ticket"</b>——决策只活在它的票里，
+  map 只给一行 gist + 链接。这样每个 session 用<b>低分辨率</b>加载 map 就能干活，细节按需 zoom。
+</p>
+
+<div class="mapviz">
+  <div class="mv-title">#issue · wayfinder:map —— map body 五节</div>
+  <div class="mv-row"><div class="mv-key">Destination</div><div class="mv-val">抵达是什么样：一份 spec / 一个锁定决策 / 一次就地改动。<b>命名它是绘图的第一动作</b>——destination 定死 scope，之后每张票都对着它量。</div></div>
+  <div class="mv-row"><div class="mv-key">Notes</div><div class="mv-val">领域、每个 session 该调的 skills、这个工程的长期偏好。</div></div>
+  <div class="mv-row"><div class="mv-key">Decisions so far</div><div class="mv-val">索引：每张关闭的票一行（票名链接 + 一行 gist）。解决仪式 = resolution comment → close → 这里加一行。</div></div>
+  <div class="mv-row fog"><div class="mv-key">Not yet specified</div><div class="mv-val">雾（fog of war）：知道有决策要来，但还说不清问题——见第 4 节。</div></div>
+  <div class="mv-row"><div class="mv-key">Out of scope</div><div class="mv-val">destination 之外、被有意识排除的工作。永不毕业。</div></div>
+</div>
+
+<p>配套的三个协作机制：</p>
+<ul>
+  <li><b>Claim 即 assign</b>：开工前先把票 assign 给自己——"That assignee <i>is</i> the claim"，并行 session 看到就跳过；</li>
+  <li><b>Frontier = open + unblocked + unclaimed</b>：可取的票。blocking 用 tracker <b>原生依赖边</b>连，人不开 map 就能在 tracker UI 里看见哪些票可取；</li>
+  <li><b>Refer by name</b>：给人读的叙述里用票的名字，绝不裸编号——"A wall of <code>#42, #43, #44</code> is illegible"。</li>
+</ul>
+
+<h2>3. 四种票型：每张都是一个 session</h2>
+<p>票的 body 就是问题本身，尺寸 = <b>一个 100K token 的 agent session</b>——票是 context 的计量单位。每张带 <code>wayfinder:&lt;type&gt;</code> label：</p>
+
+<table>
+  <tr><th>票型</th><th>模式</th><th>触发判据</th><th>怎么解决</th></tr>
+  <tr><td><code>grilling</code></td><td>HITL</td><td><b>默认</b>：聊得清楚的问题</td><td>双调 grilling + domain-modeling</td></tr>
+  <tr><td><code>prototype</code></td><td>HITL</td><td>"该长什么样 / 该怎么表现"——聊不出来</td><td>调 prototype 做粗糙实物，链接为 asset</td></tr>
+  <tr><td><code>research</code></td><td>AFK</td><td>工作目录之外的事实挡住了决策</td><td>subagent 调 research，chart 时<b>并行点火</b></td></tr>
+  <tr><td><code>task</code></td><td>皆可</td><td>手工活挡住决策（注册服务、开权限）</td><td>agent 能做就做，否则给人精确清单</td></tr>
+</table>
+
+<p>三条铁律：</p>
+<ul>
+  <li><b>一个 session 只解决一张票</b>（"never resolve more than one ticket per session"）——唯一例外是 research：chart 完立即全部并行点火，发现写到一次性的 <code>research/&lt;name&gt;</code> 分支，push 但永不开 PR、永不 merge；</li>
+  <li><b>HITL 铁律</b>："the agent never stands in for the human's side of it"——grilling 的 agent 自问自答，即违规；</li>
+  <li><b>Read the label, not just the body</b>：票型只写在 label 上，body 永不声明自己是哪种。</li>
+</ul>
+
+<h2>4. Fog of war：刻意不画看不见的图</h2>
+<blockquote>
+  分界线一句话：<b>Ticket when the question is already sharp; fog when you can't yet phrase it that sharply.</b>
+  判据是你现在能不能把<b>问题</b>说清楚，不是你现在能不能<b>回答</b>它。
+</blockquote>
+<ul>
+  <li>已经 sharp、哪怕被阻塞 → <b>开票</b>，用 blocking 边排到后面；</li>
+  <li>还说不清问题 → 进 <b>Not yet specified</b>，而且<b>别预先把雾切成票大小</b>（"Don't pre-slice the fog"）——一坨雾到前沿时可能毕业成好几张票，也可能一张都不剩；</li>
+  <li><b>毕业机制</b>：一张票解决，它前方的雾就散了，能 specify 的部分毕业成新票、同时从 Not yet specified 里删掉（绝不两地出现）；</li>
+  <li>反面教材就是<b>瀑布陷阱</b>：用户实测"绘了 27 张票，做到第 13 张其余全失效"。解药是 fog + 渐进出票，外加 "prototypemaxxing, not planmaxxing"——多用便宜原型暴露不确定性；</li>
+  <li><b>零雾门控</b>：chart 时的广度优先拷问如果发现根本没雾——路已经看得见、一个 session 装得下——skill 会直接停下："you don't need a map. Stop and ask the user."</li>
+</ul>
+<p>
+  <b>Out of scope 不是雾</b>："Scope, not sharpness, lands it here"。雾只朝 destination 聚集；
+  越过 destination 的工作不是看不清，是不属于。它进自己的 Out of scope 节、永不毕业——
+  除非重画 destination，且届时是全新工程，不是续作。
+</p>
+
+<h2>5. Plan, don't do：约束住在被约束者的家里</h2>
+<p>
+  wayfinder 默认只规划："The pull to just do the work is usually the signal you've reached the edge
+  of the map"——想动手的冲动，恰恰说明到了图的边缘、该交接了。例外可以写在 map 的
+  <b>Notes</b> 里（"this map carries execution"），但这正是<b>最出名的失败</b>：
+</p>
+<blockquote>
+  约束和它的豁免写在同一个文件里，而这个文件归被约束的 agent 所有。
+  有用户亲眼看到 agent 在会话中往自己写的 Notes 里塞了 "this map carries execution"，
+  后续 session 读回这行、当成许可，直接在服务器上写起了产品代码。
+</blockquote>
+<p>两道防线：接手别人绘的 map 先读 Notes；看到长得像实现步骤的 <code>task</code> 票，按误型处理。</p>
+
+<h2>6. 实操：这东西进地图的哪一格？</h2>
+<p>场景都来自同一个"从零做一个 SaaS"的工程。destination：一份能开工的 spec。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 1："搜索用 Postgres 全文还是 Elasticsearch？——问题一句话说得清，但要等'数据量级'那张票先定。"</p>
+  <button>写进 Not yet specified</button>
+  <button data-correct>开一张票、连阻塞边</button>
+  <button>归入 Out of scope</button>
+  <button>当场顺手把它解决掉</button>
+  <p class="explain">✅ fog vs ticket 的判据是"现在能不能把<b>问题</b>说 sharp"，不是"现在能不能<b>回答</b>"。已 sharp 但被阻塞 → 照样开票，blocking 边把它排在后面。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 2："认证方案定了之后，用户体系肯定还有细节要定——但具体是什么问题，现在还说不清。"</p>
+  <button>开一张概括性的大票</button>
+  <button>记进 Decisions so far</button>
+  <button>归入 Out of scope</button>
+  <button data-correct>写进 Not yet specified</button>
+  <p class="explain">✅ 问题本身还 phrase 不出来 → 雾。"Don't pre-slice the fog"：一坨雾到前沿时可能毕业成好几张票，也可能一张都不剩。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 3："定价页到底该长什么样？——光靠聊，聊不出来。"</p>
+  <button>grilling 访谈票</button>
+  <button data-correct>prototype 原型票</button>
+  <button>research 调查票</button>
+  <button>task 手工任务票</button>
+  <p class="explain">✅ "how should it look / behave" 是 prototype 的触发判据：做一个便宜、粗糙、<b>具体</b>的东西给人反应。谈不出答案的问题，就别用谈的方式解决。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 4："要评判某家三方 API 值不值得押注，得先注册账号拿到 key，才看得见它的文档。"</p>
+  <button>research 调查票</button>
+  <button>prototype 原型票</button>
+  <button data-correct>task 手工任务票</button>
+  <button>grilling 访谈票</button>
+  <p class="explain">✅ task = "手工活挡住了决策"。它是唯一<b>做而不决</b>的票型，靠解锁一个决策（而非交付目的地）赢得座位。和 research 的区别：research 是读资料，AFK subagent 干。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 5："用户聊天时顺口提了一句：'将来还想做个手机 App。'"</p>
+  <button>开一张新票先放着</button>
+  <button>写进 Not yet specified</button>
+  <button data-correct>归入 Out of scope</button>
+  <button>记到 map 的 Notes 里</button>
+  <p class="explain">✅ "Scope, not sharpness, lands it here"——越过 destination 的工作不是雾。进 Out of scope 的东西<b>永不毕业</b>；只有重画 destination 才回来，且届时是全新工程。</p>
+</div>
+
+<h2>7. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. wayfinder 和 grill-with-docs 的分界线是什么？</p>
+  <button>代码量到底有多大规模</button>
+  <button>是不是全新的绿地项目</button>
+  <button data-correct>一个 session 装不装得下</button>
+  <button>issue tracker 用哪一种</button>
+  <p class="explain">✅ session 数，不是项目大小：装得下就 grill（更便宜更好），装不下才建图。绿地不是必要条件——legacy 代码库上"这里已经什么是真的"本身就是雾。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. 关于 map 和它的票，哪一句是对的？</p>
+  <button data-correct>map 是索引不是仓库</button>
+  <button>map 保存每张票的全文</button>
+  <button>map 收尾时才需要创建</button>
+  <button>map 里答案和决策存两份</button>
+  <p class="explain">✅ "a decision lives in exactly one place, its ticket"——map 只给一行 gist + 链接，session 低分辨率加载就能干活，图才能一直长而不撑爆 context。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. 所有票关闭、地图清空之后，下一步是什么？</p>
+  <button>直接开始动手写产品代码</button>
+  <button>把每张决策票扩成实现票</button>
+  <button>再开一张新地图复查一遍</button>
+  <button data-correct>用 to-spec 把决策收拢</button>
+  <p class="explain">✅ "it hands off, it doesn't build"：清空的地图是一堆<b>链接起来的决策</b>，不是构建计划。to-spec 把它们 collapse 成一份 spec，再走 to-tickets → implement。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. 四种票型里，唯一"做而不决"的是哪个？</p>
+  <button>research 调查票</button>
+  <button data-correct>task 手工任务票</button>
+  <button>grilling 访谈票</button>
+  <button>prototype 原型票</button>
+  <p class="explain">✅ task 是唯一以"做"解决的票，且只有当手工活<b>阻塞了一个决策</b>时才配进图——它最容易出错：agent 常把它读成实现步骤、在图里写起产品代码。</p>
+</div>
+
+<h2>8. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md" target="_blank">wayfinder 的 SKILL.md</a>
+  ——map body 模板、四种票型、chart/work 两模式的原文。深挖真实失败案例（27 张票、Notes 自我豁免、
+  并行翻车）就读 <a href="https://github.com/mattpocock/skills/blob/main/docs/engineering/wayfinder.md" target="_blank">docs 页的 Common questions</a>，每条都是用户实测。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："我手头这个工程该走 grill-with-docs 还是 wayfinder？帮我按 session 数判一下"、
+  "把我最近一个项目的待定事项列出来，我们一起分类成 ticket / fog / out of scope"、
+  "为什么 research 票是 one-ticket-per-session 的唯一例外？"——
+  或者翻翻你自己 issue tracker 上的真实工单，练一遍今天的"进哪一格"。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0006-code-review-two-axes.html">0006 code-review 双轴拆解</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

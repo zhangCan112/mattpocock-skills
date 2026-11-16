@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mattpocock/sills 速查表 · 38 Skills</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  .card { border: 1px solid var(--rule); border-radius: 10px; padding: 0.85rem 1.1rem; background: #fff; }
+  .card h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+  .card .cmd { font-weight: 700; color: var(--accent); }
+  .card p { margin: 0.25rem 0 0; font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; }
+  .card .why { display: block; margin-top: 0.3rem; font-size: 0.82rem; }
+  .card .why::before { content: "为什么："; font-weight: 700; color: var(--ink); }
+  section { margin-bottom: 2.25rem; }
+  .legend { font-size: 0.85rem; color: var(--ink-soft); background: var(--accent-soft); border-radius: 8px; padding: 0.7rem 1rem; }
+  @media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media print { .card { break-inside: avoid; } body { font-size: 9.5pt; } }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Reference · 压缩速查</p>
+<h1>mattpocock/skills 速查表</h1>
+<p class="meta">
+  38 个 skill · <span class="tag user">user-invoked</span> 只能人触发，负责编排 ·
+  <span class="tag">model-invoked</span> agent 可自主触发，承载纪律 ·
+  user-invoked 可调 model-invoked，绝不调另一个 user-invoked
+</p>
+
+<div class="legend">
+  <strong>四大失败模式 → 解药：</strong>
+  ① 没做我想要的 → grilling 家族 ｜ ② 太啰嗦 → domain-modeling（GLOSSARY+ADR）｜
+  ③ 代码跑不起来 → tdd / diagnosing-bugs ｜ ④ 大泥球 → codebase-design / improve-codebase-architecture / to-spec / to-tickets
+</div>
+
+<section>
+<h2>主线：idea → ship（用户依次敲）</h2>
+<div class="grid">
+
+<div class="card"><h3><span class="cmd">/grill-with-docs</span> <span class="tag user">user</span></h3>
+<p>拷问式对齐 + 把术语写进 GLOSSARY.md、难逆决策写成 ADR。有 repo 时的默认入口。</p>
+<span class="why">正文只有一行：双调 grilling + domain-modeling——纯组合设计，一份访谈原语五个入口复用。</span></div>
+
+<div class="card"><h3><span class="cmd">/to-spec</span> <span class="tag user">user</span></h3>
+<p>把当前对话合成 spec 发到 tracker，不做新决定。与用户确认测试 seam（理想数量是一）。</p>
+<span class="why">"Context windows end"——spec 是决策存档；Seams before prose：tdd 只在约定 seam 写测试、code-review 检查约定，两处都过这份文档。</span></div>
+
+<div class="card"><h3><span class="cmd">/to-tickets</span> <span class="tag user">user</span></h3>
+<p>拆成曳光弹工单，每张声明阻塞边。垂直切片（每片可独立 demo、装进一个 context window），quiz 用户批准后才发布。</p>
+<span class="why">最常见错误是按层横切（真实复盘：26 张横切票四分之三返工）；"The edges are the point of the artifact"。</span></div>
+
+<div class="card"><h3><span class="cmd">/implement</span> <span class="tag user">user</span></h3>
+<p>逐票落地：驱动 /tdd → 跑 /code-review → commit。绝不重开计划。一次一票，票间 /clear。</p>
+<span class="why">与 "build this" 的区别：不边建边重新设计。多 session 共享一个 checkout 是灾难（一个下午三次事故的实录）。</span></div>
+
+<div class="card"><h3><span class="cmd">/implement-spec</span> <span class="tag user">user</span></h3>
+<p>整图并行：ticket 当 task graph，frontier 上派 implementer subagent（各自 worktree + /tdd），合并进 integration branch，最后跑一次 /code-review。</p>
+<span class="why">implementer 先 merge integration tip，主合并全是 fast-forward；code-review 只在最后跑一次（中途跑会 build-review-build 死循环四小时）。</span></div>
+
+<div class="card"><h3><span class="cmd">/retro</span> <span class="tag user">user</span></h3>
+<p>复盘 session，按严重度提议改 agent 环境（不是改代码）：机械错误→确定性检查，判断题→CODING_STANDARDS.md。</p>
+<span class="why">"AGENTS.md 里一句新规则几乎总是错误的修复位置"；规则要放在有空间执行它的地方——review agent。</span></div>
+
+</div>
+</section>
+
+<section>
+<h2>匝道与养护</h2>
+<div class="grid">
+
+<div class="card"><h3><span class="cmd">/triage</span> <span class="tag user">user</span></h3>
+<p>外来 issue 推过分诊状态机（2 类别 × 5 状态），产出 agent-ready brief / 追问 / 带原因关闭。</p>
+<span class="why">只处理外来工作（to-tickets 的票不要再 triage）；brief 要 durable（禁文件路径——issue 会躺几周）。</span></div>
+
+<div class="card"><h3><span class="cmd">/wayfinder</span> <span class="tag user">user</span></h3>
+<p>超大迷雾工程：在 tracker 上绘决策票地图（map 是 index 不是 store），fog of war 渐进出票，一次一张。清空后交给 /to-spec。</p>
+<span class="why">对抗瀑布陷阱（27 张票到第 13 张全作废）；plan, don't do——"the pull to just do the work is the signal you've reached the edge of the map"。</span></div>
+
+<div class="card"><h3><span class="cmd">/improve-codebase-architecture</span> <span class="tag user">user</span></h3>
+<p>扫描深化机会 → 临时目录里的 HTML 报告（Before/After 图）→ 你挑一个 → grilling。是 survey 不是 rescue。</p>
+<span class="why">deletion test 做过滤器；git log 找 hot spots（没人碰的代码里 deepening 不回本）；全程不改代码。</span></div>
+
+<div class="card"><h3><span class="cmd">/ask-matt</span> <span class="tag user">user</span></h3>
+<p>描述情境，告诉你该敲哪个命令，然后停下。手写的五层地图（主线/匝道/养护/词汇层/独立）。</p>
+<span class="why">user-invoked 的 skill agent 看不见，不能指望自动路由；只推荐不执行，人在环上。</span></div>
+
+<div class="card"><h3><span class="cmd">/setup-matt-pocock-skills</span> <span class="tag user">user</span></h3>
+<p>每仓库一次：配置 issue tracker（GitHub/GitLab/本地 markdown/Other）、triage 标签、域文档位置，写成 docs/agents/*.md。</p>
+<span class="why">"Those files are the only thing that varies between repos"——配置即 markdown，skill 不绑 GitHub。</span></div>
+
+</div>
+</section>
+
+<section>
+<h2>被复用的纪律（model-invoked 积木）</h2>
+<div class="grid">
+
+<div class="card"><h3><span class="cmd">/grilling</span> <span class="tag">model</span> ★原语</h3>
+<p>无情访谈：主题建模为 design tree，按 rounds 问完整个 frontier，每题带推荐答案（"yes" 即接受）。</p>
+<span class="why">frontier 保证同轮问题互不依赖（13 问 ≈ 3 轮）；事实 agent 查（派 subagent），决策用户做；frontier 空 + 用户确认才算完。</span></div>
+
+<div class="card"><h3><span class="cmd">/tdd</span> <span class="tag">model</span></h3>
+<p>红绿循环参考：先失败测试→恰好够的实现，一次一个 slice；只在预先约定的 seam 测试。</p>
+<span class="why">三大反模式：Implementation-coupled（重构时测试变红）、Tautological（期望值用代码自己算）、Horizontal slicing（测想象中的行为）；mock 只在系统边界。</span></div>
+
+<div class="card"><h3><span class="cmd">/diagnosing-bugs</span> <span class="tag">model</span></h3>
+<p>六阶段门控诊断循环。Phase 1 建一条对这个 bug 变红的 tight loop——"No red-capable command, no Phase 2"。</p>
+<span class="why">"Build the right feedback loop, and the bug is 90% fixed"；3–5 个排序假设对抗锚定；无 correct seam 本身就是 finding。</span></div>
+
+<div class="card"><h3><span class="cmd">/code-review</span> <span class="tag">model</span></h3>
+<p>双轴评审：Standards（仓库标准 + Fowler 12 smells）与 Spec（对照源头 issue），两个并行 sub-agent，报告并排永不合并。</p>
+<span class="why">"一个改动可以通过一轴挂掉另一轴"；混合裁定会让通过的一轴掩盖挂掉的一轴。</span></div>
+
+<div class="card"><h3><span class="cmd">/domain-modeling</span> <span class="tag">model</span> 词汇层</h3>
+<p>主动磨利领域语言：挑战术语、场景压测、术语敲定的当下 inline 写 GLOSSARY.md；ADR 过三道门（难逆+令人惊讶+真权衡）。</p>
+<span class="why">"session 结束才补写的 glossary 只是摘要，inline 版本才是产出"；GLOSSARY 只是 glossary（最常破的规则）。</span></div>
+
+<div class="card"><h3><span class="cmd">/codebase-design</span> <span class="tag">model</span> 词汇层</h3>
+<p>深模块八词汇：module/interface/depth/seam/adapter/leverage/locality…（每个带 Avoid 别名）。是 reference 不是 process。</p>
+<span class="why">"consistency of language is the whole point"；depth=interface 处的 leverage（拒绝行数比）；Design It Twice 并行 3+ 子代理出激进不同方案。</span></div>
+
+<div class="card"><h3><span class="cmd">/prototype</span> <span class="tag">model</span></h3>
+<p>可抛弃代码回答一个设计问题：LOGIC 分支出单 HTML 状态机 demo；UI 分支出 3–5 个结构性不同 variant。</p>
+<span class="why">关键反馈是 "wait, that shouldn't be possible"（想法里的 bug）；throwaway 是写法约束——加测试时就不再是在 prototype 了。</span></div>
+
+<div class="card"><h3><span class="cmd">/research</span> <span class="tag">model</span></h3>
+<p>后台 agent 只读一手资料（官方文档/源码/spec），产出每条 claim 带引用的 Markdown 文件。你继续干活。</p>
+<span class="why">"委托的 legwork，不是外包的思考"；引用是唯一的防线——抽查两条即可验伪；要给窄问题（无停止判据）。</span></div>
+
+<div class="card"><h3><span class="cmd">/pr</span> <span class="tag">model</span></h3>
+<p>PR body 三段：Summary（最小视图：伪码/调用树/组件树…）、Evidence（before/after）、Merge Danger（单向/双向门 + 影响面）。</p>
+<span class="why">reviewer 手边已开着 diff——body 先给形状；door call 把"安全吗"从直觉变成可反驳的声明（写变更的 agent 在给自己打分，最该怀疑）。</span></div>
+
+<div class="card"><h3><span class="cmd">/wizard</span> <span class="tag">model</span></h3>
+<p>生成交互式 bash 脚本带人走完只有人能做的步骤：开 URL、指示点哪里抄什么、值直写 .env/secrets。agent 只写不跑。</p>
+<span class="why">是程序不是说明清单（"当一步过时它会显式失败"）；API key 不进模型 context（脚本盲捕获直写）。</span></div>
+
+<div class="card"><h3><span class="cmd">/writing-for-agents</span> <span class="tag">model</span> 元规范</h3>
+<p>写一切 agent 读的文档的规范：context pointers、two loads、三级信息阶梯、completion criteria、leading words、pruning。</p>
+<span class="why">"The pointer's wording, not its target, decides when the agent reaches the material"；默认修复是删除而非解释；"Every skill here was written with it."</span></div>
+
+</div>
+</section>
+
+<section>
+<h2>Productivity 独立工具</h2>
+<div class="grid">
+
+<div class="card"><h3><span class="cmd">/grill-me</span> <span class="tag user">user</span></h3>
+<p>grilling 的无状态入口（正文只有一行）。不写文件、不限软件话题。</p>
+<span class="why">状态入口与机制分离；有 repo 用 grill-with-docs（strictly better）。</span></div>
+
+<div class="card"><h3><span class="cmd">/handoff</span> <span class="tag user">user</span></h3>
+<p>对话压缩成临时目录里的交接文档：suggested skills 节 + 引用而非复制 artifacts + 脱敏。</p>
+<span class="why">买的是 portability 不是 compression——只限换 harness/换目录/给同事/分叉支线四种场景。</span></div>
+
+<div class="card"><h3><span class="cmd">/teach</span> <span class="tag user">user</span></h3>
+<p>当前目录变有状态教学 workspace：MISSION/RESOURCES/lessons/reference/learning-records。</p>
+<span class="why">Fluency 是错觉、Storage 才是真目标；知识获取时难度是敌人，技能训练时难度是工具；"Never trust your parametric knowledge"。</span></div>
+
+<div class="card"><h3><span class="cmd">/to-questionnaire</span> <span class="tag user">user</span></h3>
+<p>答案在别人脑袋里：把决定变成 Markdown 问卷寄给唯一能答的人。"Grill the send, not the subject"。</p>
+<span class="why">与 grill-me 的区别不在交付方式，在答案在谁的脑袋里；最重要优先（异步可能只有一次机会）。</span></div>
+
+<div class="card"><h3><span class="cmd">/wait-what</span> <span class="tag user">user</span></h3>
+<p>没听懂 agent 的话时：让它用简化英语 + GLOSSARY 词汇 re-pitch。正文只有一句。</p>
+<span class="why">"The name is the mechanism"——wait 是关于听者状态的指令；"be concise" 是关于输出的，模型只会剪碎词。</span></div>
+
+</div>
+</section>
+
+<section>
+<h2>非主推（misc / in-progress）</h2>
+<div class="grid">
+
+<div class="card"><h3><span class="cmd">misc × 4</span></h3>
+<p>git-guardrails-claude-code（危险 git 命令拦截 hook）· migrate-to-shoehorn（测试断言迁移）· scaffold-exercises（课程脚手架）· setup-pre-commit（Husky 安装器）。</p>
+<span class="why">"留着但很少用"：稳定但小众，多绑作者自家生态；setup-pre-commit 是 setup 类 skill 的模板原型。</span></div>
+
+<div class="card"><h3><span class="cmd">in-progress × 7</span></h3>
+<p>loop-me（生活模式→自动化规格）· writing 三部曲（fragments 采矿 → shape 线性 / beats 分岔塑形）· claude-handoff（交接并直接拉起后台 agent）· setup-ts-deep-modules（dependency-cruiser 强制深模块）· chief-of-staff（常驻参谋长）。</p>
+<span class="why">公开 beta 求反馈，随时会变；主题是"grilling × 领域"试验田 + 把设计词汇变成机器强制。</span></div>
+
+</div>
+</section>
+
+<footer>
+  来源：仓库各 SKILL.md 与 docs/ 文档页 · 详解见 <a href="../README.md">教程目录</a> ·
+  生成于 2026-10-18 · 隶属 <a href="../MISSION.md">学习使命</a>
+</footer>
+
+</main>
+</body>
+</html>

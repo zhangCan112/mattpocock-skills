@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第二课 · 主线工作流走查</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .flow { list-style: none; padding: 0; margin: 1.5rem 0; }
+  .flow li { position: relative; padding: 0.6rem 0 0.6rem 2.4rem; border-left: 2px solid var(--rule); margin-left: 1rem; }
+  .flow li:last-child { border-left-color: transparent; }
+  .flow .n { position: absolute; left: -1.05rem; top: 0.55rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 0.8rem/1 "Helvetica Neue", sans-serif; }
+  .flow .cmd { font-weight: 700; color: var(--accent); font-family: "Cascadia Code", Consolas, monospace; font-size: 0.9em; }
+  .flow .note { display: block; font-size: 0.85rem; color: var(--ink-soft); }
+  details { border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1.25rem; margin: 1rem 0; background: #fff; }
+  summary { cursor: pointer; font-weight: 700; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  details[open] summary { margin-bottom: 0.6rem; }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0002 · 约 10 分钟</p>
+<h1>主线工作流走查：从想法到上线</h1>
+<p class="meta">
+  前置：<a href="./0001-skill-invocation-and-failure-modes.html">0001 调用类型与失败模式</a> ｜
+  配套阅读：<a href="../07-工作流组合.md" target="_blank">07 工作流组合</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：grilling 实操演练
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  给你一个真实的功能想法，你能<b>自己写出该敲的命令序列</b>，并在每个岔路口说出为什么走这边。
+  这是使用这套 skill 最常用的一天到一天的路径。
+</div>
+
+<h2>1. 主线全景（五步）</h2>
+<ol class="flow">
+  <li><span class="n">1</span><span class="cmd">/grill-with-docs</span> — 拷问式对齐
+    <span class="note">agent 一轮轮问你（每题带推荐答案），术语当场写进 GLOSSARY.md，难逆决策写成 ADR。<b>每次要改东西前都从这里开始。</b></span></li>
+  <li><span class="n">2</span><span class="cmd">/handoff → /prototype → /handoff</span> — 绕道（仅当需要）
+    <span class="note">遇到"跑起来才能回答"的问题（状态机对不对？UI 该长啥样？）才走这条路：交接出去 → 做可抛弃原型 → 把答案带回来。</span></li>
+  <li><span class="n">3</span><span class="cmd">/to-spec → /to-tickets</span> — 固化决策（仅多 session 工程）
+    <span class="note">spec 是决策存档（含<b>与你确认的测试 seam</b>）；工单是垂直切片 + 阻塞边。小改动跳过这步，直接第 4 步。</span></li>
+  <li><span class="n">4</span><span class="cmd">/implement</span> 或 <span class="cmd">/implement-spec</span> — 构建
+    <span class="note">构建内部自动驱动 <code>/tdd</code>（只在约定 seam 写测试），收尾自动跑 <code>/code-review</code>（双轴）。逐票手推或整图并行，二选一。</span></li>
+  <li><span class="n">5</span><span class="cmd">/pr</span> → <span class="cmd">/retro</span> — 上线与复盘
+    <span class="note">PR body 自动套三段模板（视图/证据/风险判定）；retro 复盘的是<b>环境</b>：机械错误变检查，判断题变标准。</span></li>
+</ol>
+
+<h2>2. 两个岔路口</h2>
+
+<h3>岔路 A：这个问题聊得明白吗？</h3>
+<p>
+  grilling 时如果卡在"one long form or three pages?"这类<b>纸上谈不明白</b>的问题，硬聊只会越拖越长。
+  判据：答案是<b>实物反应</b>（状态、逻辑、看得见的 UI）→ 绕道 prototype；
+  答案在<b>你自己脑袋里</b> → 继续 grilling；
+  答案在<b>别人脑袋里</b> → <code>/to-questionnaire</code>；
+  答案在<b>外部世界</b>（文档、API）→ <code>/research</code> 后台查。
+</p>
+
+<h3>岔路 B：这活儿跨几个 session？</h3>
+<table>
+  <tr><th>规模</th><th>路径</th></tr>
+  <tr><td>一次对话装得下</td><td>grill 完<b>直接</b> <code>/implement</code>（同窗口）</td></tr>
+  <tr><td>多张工单、你想逐票掌控</td><td><code>/to-spec → /to-tickets</code>，然后逐票 <code>/implement</code>，<b>票间 /clear</b></td></tr>
+  <tr><td>多张工单、你想一次跑完</td><td><code>/to-spec → /to-tickets → /implement-spec</code>（frontier 并行 + worktree 隔离）</td></tr>
+  <tr><td>大到一个 session 连<b>规划</b>都装不下</td><td><code>/wayfinder</code> 绘决策地图，雾散后再回到 <code>/to-spec</code></td></tr>
+</table>
+
+<h2>3. 上下文卫生（最容易踩的坑）</h2>
+<blockquote>
+  第 1–3 步（拷问 → spec → 工单）保持在<b>一个不间断的 context window</b> 里——
+  spec 和工单要建立在拷问产生的同一份思考上。到 <code>/to-tickets</code> 为止都不要 compact/clear。
+</blockquote>
+<p>
+  为什么：spec 是"决策存档"，但它合成自对话；窗口断了，agent 只能从 tracker 回读 spec，细节会丢。
+  之后每张工单<b>自包含</b>，所以逐票 <code>/implement</code> 中间随便 <code>/clear</code>。
+  判断窗口还能不能用的标准是 <b>smart zone</b>（约 150k token 内模型仍在敏锐推理）：
+  逼近上限时别硬撑（"don't push on degraded"），在最近的<b>阶段边界</b>做处置。
+</p>
+
+<h2>4. 场景演练（本课的 Win）</h2>
+<p>
+  场景：你维护一个 Next.js SaaS，想加"用户可以把自己建的仪表盘分享给队友"功能。你估计要动数据库、
+  API、权限系统和前端，大概两周的活。你现在脑子里只有个模糊想法。
+</p>
+<p><b>先自己写</b>：你会按什么顺序敲哪些命令？（写在纸上或输入框里都行）</p>
+<details>
+  <summary>写完了？点开对照参考答案</summary>
+  <ol class="flow">
+    <li><span class="n">1</span><span class="cmd">/grill-with-docs</span>
+      <span class="note">两周的活肯定跨 session → 走完整主线。"分享"的语义（只读？可编辑？链接有效期？）会被问出来；"Shareable Dashboard"、"Seat" 等术语进 GLOSSARY。</span></li>
+    <li><span class="n">2</span><span class="cmd">/handoff → /prototype → /handoff</span>
+      <span class="note">如果对"权限级联"（移除队友时他分享出去的链接怎么办？）想不清楚——做个单 HTML 状态机原型，自己乱按找漏洞。</span></li>
+    <li><span class="n">3</span><span class="cmd">/to-spec</span>
+      <span class="note">合成 spec；和你确认<b>一个</b>测试 seam（大概率是分享 API 的 public 接口）。</span></li>
+    <li><span class="n">4</span><span class="cmd">/to-tickets</span>
+      <span class="note">垂直切片：①分享链接生成 + ②只读渲染 + ③权限校验 + ④撤销……每片独立可 demo；quiz 批准粒度和阻塞边。</span></li>
+    <li><span class="n">5</span><span class="cmd">/implement-spec</span>（或逐票 <span class="cmd">/implement</span>）
+      <span class="note">四张票无依赖冲突的话整图并行最快；最后自动跑一次 code-review。</span></li>
+    <li><span class="n">6</span><span class="cmd">/pr</span> → <span class="cmd">/retro</span>
+      <span class="note">PR：组件树视图 + before/after 截图 + "two-way door"判定（分享可撤销，可回）。retro：这次哪里反复卡住？该加什么检查？</span></li>
+  </ol>
+</details>
+<p class="meta">对照时重点看：岔路 A、B 你选对了吗？第 3 步的 seam 想到了吗？</p>
+
+<h2>5. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. 主线第 1-3 步（拷问→spec→工单）应如何处理上下文？</p>
+  <button>每一步开始前先清空窗口</button>
+  <button data-correct>保持在同一个不间断窗口</button>
+  <button>拷问结束后立刻压缩继续</button>
+  <button>每张工单都继承全部历史</button>
+  <p class="explain">✅ spec 和工单要建立在拷问产生的同一份思考上，到 /to-tickets 为止不要 compact/clear。之后的工单自包含，票间随便 /clear。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. /to-tickets 拆工单的正确方式是什么？</p>
+  <button>按技术分层横切全部工单</button>
+  <button>按依赖倒序排列全部工单</button>
+  <button>全部塞进一张最大的工单</button>
+  <button data-correct>垂直切片并且每片可演示</button>
+  <p class="explain">✅ 曳光弹 = 垂直切片：每片窄但完整穿过每一层（schema、API、UI、tests），完成的片独立可 demo。判别法："问每张票：完成后我能 demo 什么？答不出就是横切。"</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. implement 与 implement-spec 的关键区别是？</p>
+  <button data-correct>前者逐票驱动后者整图并行</button>
+  <button>两者完全相同只是名字不同</button>
+  <button>前者并行后者单线程来执行</button>
+  <button>后者不支持测试环节与评审</button>
+  <p class="explain">✅ implement 是你逐票手推（票间 /clear）；implement-spec 把工单当 task graph，在 ready frontier 上并行派 implementer subagent（各自 worktree + /tdd），最后对 integration branch 跑一次 code-review。两者都用 tdd 和 code-review。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. code-review 在 implement-spec 里什么时候跑？</p>
+  <button>每张工单完成之后立即跑一次</button>
+  <button data-correct>全部完成后对集成分支跑一次</button>
+  <button>开始前对着规格文档先跑一次</button>
+  <button>每合并完一张工单就跑上一次</button>
+  <p class="explain">✅ 它对照整个 spec 审查——中途跑会把没建的票全读成失败，触发"build-review-build"死循环（真实案例：五票 feature 的循环跑了四小时）。</p>
+</div>
+
+<h2>6. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/ask-matt/SKILL.md" target="_blank">ask-matt 的 SKILL.md</a>
+  ——作者本人手写的主线路由图，本课的每个岔路口它都有一句话裁决。以后忘了流程，跑 <code>/ask-matt</code> 就行。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："拿我现在的项目，帮我把某个功能走一遍这条主线"、"implement-spec 的 worktree 是怎么隔离的"、
+  "什么时候该用 wayfinder 而不是 to-spec？"。也可以直接说 <b>下一课</b>，我会为你准备 grilling 实操演练。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0001-skill-invocation-and-failure-modes.html">0001 调用类型与失败模式</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

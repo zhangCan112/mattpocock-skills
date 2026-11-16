@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第四课 · 深模块词汇专题</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .vocab { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  .vocab td, .vocab th { border: 1px solid var(--rule); padding: 0.5rem 0.7rem; vertical-align: top; text-align: left; }
+  .vocab th { background: var(--code-bg); }
+  .vocab .t { font-weight: 700; white-space: nowrap; }
+  .vocab .av { color: var(--ink-soft); font-size: 0.8rem; }
+  pre.example { margin: 0.4rem 0 0.7rem; font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0004 · 约 12 分钟</p>
+<h1>深模块词汇：codebase-design 的八个词</h1>
+<p class="meta">
+  前置：<a href="./0003-grilling-practice.html">0003 grilling 实操演练</a> ｜
+  配套阅读：<a href="../04-engineering-模型调用篇.md" target="_blank">04 · codebase-design 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：待定（告诉我想深入哪块）
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  学会这套词汇后，你能指着代码库里的任何一个模块说出：<b>它 deep 还是 shallow？为什么？</b>
+  ——并且用 <b>deletion test</b> 论证你的判断。这是 <code>/improve-codebase-architecture</code>
+  找候选、<code>/tdd</code> 选 seam 时共同使用的语言。
+</div>
+
+<h2>1. 为什么需要一套词汇？</h2>
+<p>
+  SKILL.md 的第一性主张：<b>"consistency of language is the whole point"</b>（语言的一致性就是全部重点）。
+  设计对话里 "component / service / API / boundary" 各说各话——<b>没人一致使用的术语比没有术语更糟</b>。
+  这套词汇源自 Ousterhout《A Philosophy of Software Design》和 Michael Feathers 的 seam 概念，
+  但被作者改造过（见第 4 节）。
+</p>
+
+<h2>2. 八个词</h2>
+<table class="vocab">
+  <tr><th>术语</th><th>定义</th><th>避免说</th></tr>
+  <tr><td class="t">Module</td><td>有 interface 和 implementation 的任何东西（刻意的 scale-agnostic：函数/类/package/跨 tier 切片）</td><td class="av">unit, component, service</td></tr>
+  <tr><td class="t">Interface</td><td>caller 正确使用该模块必须知道的<b>一切</b>：类型签名之外，还有 invariants、顺序约束、error modes、性能特征</td><td class="av">API, signature（太窄）</td></tr>
+  <tr><td class="t">Implementation</td><td>模块内部代码体（讨论"大/小"时用）</td><td class="av"></td></tr>
+  <tr><td class="t">Depth</td><td><b>interface 处的 leverage</b>：caller 每学一单位 interface 能驱动多少行为</td><td class="av">行数比</td></tr>
+  <tr><td class="t">Seam</td><td>不改此处代码就能改变行为的<b>地方</b>（Feathers）；是 interface 的位置——seam 放哪本身是独立设计决定</td><td class="av">boundary（与 DDD 撞词）</td></tr>
+  <tr><td class="t">Adapter</td><td>在 seam 处满足 interface 的具体物；描述<b>角色</b>（填哪个槽）而非实质</td><td class="av"></td></tr>
+  <tr><td class="t">Leverage</td><td><b>caller</b> 从 depth 得到的：每单位所学 interface 的能力</td><td class="av"></td></tr>
+  <tr><td class="t">Locality</td><td><b>maintainer</b> 从 depth 得到的：变更/bug/验证集中一处，"fix once, fixed everywhere"</td><td class="av"></td></tr>
+</table>
+<p class="meta">
+  一个记忆钩子：depth 的两个受益者是 <b>caller（leverage）</b>和 <b>maintainer（locality）</b>。
+  adapter 的两种典型比例：Postgres repo 是"小 adapter + 大 implementation"；in-memory fake 是"大 adapter + 小 implementation"。
+</p>
+
+<h2>3. 四条原则</h2>
+<ol>
+  <li><b>Depth 是 interface 的属性，不是 implementation 的</b>——deep module 内部可以由小的可替换部分组成，只是不进 interface；模块可有 internal seams（私有、自己的测试用）和 external seam。</li>
+  <li><b>The deletion test</b>：想象删掉模块——复杂度<b>消失</b> = 它只是 pass-through；复杂度在 <b>N 个 caller 身上重现</b> = 它在挣饭吃。下面马上练。</li>
+  <li><b>Interface 即 test surface</b>：caller 和测试过同一个 seam；想测到 interface 之外 = 模块形状不对（这正是 <code>/tdd</code> "只在约定的 seam 测试"的理论根基）。</li>
+  <li><b>One adapter means a hypothetical seam. Two adapters means a real one.</b>——没有东西真的跨 seam 变化，就不要切 seam；单 adapter 的 seam 只是 indirection。</li>
+</ol>
+
+<h2>4. 一个精妙的改造：depth ≠ 行数比</h2>
+<blockquote>
+  Ousterhout 原版用"implementation 行数 / interface 行数"定义 depth。
+  这个仓库<b>拒绝</b>了它——那会奖励往 implementation 里灌水。
+  替代定义：<b>depth-as-leverage</b>，caller 每学一单位 interface 能驱动多少行为。
+</blockquote>
+<p>
+  这也是 <b>leading word</b> 的活例子（writing-for-agents 的概念）：这些词是"预训练里已有的紧凑概念"，
+  <code>/tdd</code>、<code>/improve-codebase-architecture</code>、<code>/to-spec</code> 的 Implementation Decisions
+  都用同一套 token 说话，agent 一看到 "seam" 就招募起一整片行为。
+</p>
+
+<h2>5. Deletion test 三连练</h2>
+<p>看代码 → 判断 → 点击即反馈。（先自己判断再看答案！）</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 A：</p>
+  <pre class="example"><code>// services/user-service.ts
+export function getUser(id: string) {
+  return prisma.user.findUnique({ where: { id } });
+}</code></pre>
+  <p class="q" style="font-size:0.92rem; font-weight:400">删掉它，每个 caller 直接调 <code>prisma.user.findUnique</code>。这是 deep 还是 shallow？</p>
+  <button>deep：复杂度会重现</button>
+  <button data-correct>shallow：复杂度会消失</button>
+  <p class="explain">✅ 删掉后什么都没丢：一行转发、一个参数、一个返回——interface 和 implementation 一样复杂。它是 pass-through。注意：不是说它"有罪"，而是它<b>不构成一个深模块</b>；它甚至不该存在（caller 直接调 prisma 即可），或者只是等待长出行为的地方。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 B：</p>
+  <pre class="example"><code>// pdf-invoice.ts
+export interface InvoiceRenderer {
+  render(invoice: Invoice): Promise&lt;Blob&gt;;  // 唯一入口
+}
+// implementation（约 800 行）：排版、多币种、
+// 税务规则、中文字体嵌入、自动分页……</code></pre>
+  <p class="q" style="font-size:0.92rem; font-weight:400">删掉它，复杂度去哪？</p>
+  <button data-correct>deep：复杂度会重现</button>
+  <button>shallow：复杂度会消失</button>
+  <p class="explain">✅ 删掉后 800 行复杂度在 N 个 caller 身上重现（或根本没人能重现）。一个方法的小 interface 驱动大量行为：leverage 极高，locality 也高（改税务规则只动一处）。教科书级 deep module。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 C：</p>
+  <pre class="example"><code>// editor.ts —— 40 个 public 方法，共约 120 行实现
+export class Editor {
+  insertText(t: string) { ... }
+  deleteSelection() { ... }
+  moveCursor(dx: number, dy: number) { ... }
+  getCursor() { ... }  // ……还有 36 个
+}</code></pre>
+  <p class="q" style="font-size:0.92rem; font-weight:400">行数不少，但它是 deep 还是 shallow？</p>
+  <button>deep：复杂度会重现</button>
+  <button data-correct>shallow：接口几乎和实现一样宽</button>
+  <p class="explain">✅ 这就是"depth 是 interface 的属性"的考场：40 个 public 方法 ≈ 120 行实现——caller 必须学 40 个单位才能驱动这点行为，leverage 极低。深化的方向不是"加实现"，而是<b>把 40 个方法收进少数高层入口</b>（如 <code>apply(edit: Edit)</code> + 事件流）。</p>
+</div>
+
+<h2>6. 这套词汇在主线里出现的位置</h2>
+<table>
+  <tr><th>位置</th><th>怎么用</th></tr>
+  <tr><td><code>/tdd</code></td><td>seam 作为<b>测试</b>边界；interface 形状存疑时调 codebase-design 取词汇</td></tr>
+  <tr><td><code>/improve-codebase-architecture</code></td><td>HTML 报告的建筑名词和动词<b>全部来自</b>这套词汇；它是"找 module"，codebase-design 是"设计工作台"</td></tr>
+  <tr><td><code>/to-spec</code></td><td>Implementation Decisions 一节用 module/interface 词汇描述要建/改的东西</td></tr>
+  <tr><td>延伸文件</td><td><code>DEEPENING.md</code>（依赖四分类 + replace, don't layer）、<code>DESIGN-IT-TWICE.md</code>（并行 3+ 子代理出激进不同 interface，"用户要的是 strong read，不是菜单"）</td></tr>
+</table>
+
+<h2>7. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. depth 在这套体系里被定义为什么？</p>
+  <button>实现代码的行数</button>
+  <button>公开方法数量</button>
+  <button>被复用的次数</button>
+  <button data-correct>接口处的杠杆</button>
+  <p class="explain">✅ depth = interface 处的 leverage：caller 每学一单位 interface 能驱动多少行为。行数比定义被明确拒绝（奖励灌水）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. deletion test 的判据是什么？</p>
+  <button>看模块被谁调用得最多</button>
+  <button data-correct>看删除后复杂度的去向</button>
+  <button>看接口文档写得清不清</button>
+  <button>看单元测试覆盖率高低</button>
+  <p class="explain">✅ 复杂度消失 = pass-through；在 N 个 caller 身上重现 = 它在挣饭吃（deep 的信号）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. "One adapter means a hypothetical seam" 警告什么？</p>
+  <button>接口应该尽量减少公开方法</button>
+  <button data-correct>只有一个实现的接缝是假象</button>
+  <button>每个模块都该配两个适配器</button>
+  <button>适配器应该比实现代码更小</button>
+  <p class="explain">✅ 没有东西真的跨 seam 变化就不要切 seam——单 adapter 的 seam 只是 indirection。两个 adapter（如 Postgres repo + in-memory fake）才证明 seam 是真的。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. 为什么拒绝"实现行数 ÷ 接口行数"的 depth 定义？</p>
+  <button data-correct>因为会奖励往实现里灌水</button>
+  <button>因为它只适用于函数式语言</button>
+  <button>因为行数在重构时经常变化</button>
+  <button>因为无法用脚本自动化度量</button>
+  <p class="explain">✅ 行数比可以靠膨胀 implementation"刷高"，但不增加 caller 得到的 leverage。depth-as-leverage 直接度量受益者（caller 和 maintainer）得到的东西。</p>
+</div>
+
+<h2>8. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md" target="_blank">codebase-design 的 SKILL.md</a>
+  ——八词汇 + 四原则的原文，一页读完。想再进一步就读同目录的
+  <code>DEEPENING.md</code>（怎么安全深化浅模块）和 <code>DESIGN-IT-TWICE.md</code>（怎么并行探索设计空间）。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："拿我项目里的三个模块，陪我逐个跑 deletion test"、"DEEPENING.md 的依赖四分类是哪四类？
+  各自怎么测？"、或者直接在你自己的仓库里跑一次 <code>/improve-codebase-architecture</code>，
+  看看 HTML 报告是不是全用今天这套词写的（会的）。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0003-grilling-practice.html">0003 grilling 实操演练</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

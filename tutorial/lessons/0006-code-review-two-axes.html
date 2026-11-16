@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第六课 · code-review 双轴拆解</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  pre.example { margin: 0.4rem 0 0.7rem; font-size: 0.82rem; }
+  .axis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin: 1.25rem 0; }
+  .axis .col { border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1.1rem; background: #fff; }
+  .axis h3 { margin: 0 0 0.4rem; font-size: 0.98rem; }
+  .axis p { margin: 0.25rem 0; font-size: 0.88rem; color: var(--ink-soft); }
+  @media (max-width: 700px) { .axis { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0006 · 约 12 分钟</p>
+<h1>code-review：为什么评审必须拆成两根轴</h1>
+<p class="meta">
+  前置：<a href="./0005-tdd-anti-patterns.html">0005 tdd 三大反模式</a> ｜
+  配套阅读：<a href="../04-engineering-模型调用篇.md" target="_blank">04 · code-review 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：待定（告诉我想深入哪块）
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  读完这页，你能说清 <b>Standards 轴和 Spec 轴各查什么、为什么必须跑在互相隔离的子代理里、
+  为什么报告永不合并</b>——并且能认出 4 个最常见的 Fowler smell。
+</div>
+
+<h2>0. 热身：先回忆上一课（检索练习）</h2>
+<p>不翻回去，凭记忆答。答错正好暴露要补的洞。</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 1：期望值的健康来源是哪一个？</p>
+  <button>复跑一遍实现的逻辑</button>
+  <button>录下当前输出当快照</button>
+  <button data-correct>手算出来的已知答案</button>
+  <button>让被测函数自己回答</button>
+  <p class="explain">✅ 三种健康出处：已知正确的字面量、worked example（手算例子）、spec 条款。复跑逻辑和快照都不独立——"批改不能拿学生自己的答案当标准答案"。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">热身 2："实现整个换掉（行为不变），它还绿吗？"检测哪个反模式？</p>
+  <button>同义反复型</button>
+  <button data-correct>实现耦合型</button>
+  <button>水平切片型</button>
+  <button>不是反模式</button>
+  <p class="explain">✅ 这是实现耦合（伸进内部）的判据。期望值来源 → 同义反复；批量预写 → 水平切片。</p>
+</div>
+
+<h2>1. 它在链条里的位置</h2>
+<p>
+  <code>/implement</code> 每张票完成后调它；<code>/implement-spec</code> 在全部票合并完后对
+  integration branch <b>只跑一次</b>（中途跑会把没建的票读成失败，触发 build-review-build 死循环——
+  上上课的真实案例）。评审对象是 <code>git diff &lt;fixed-point&gt;...HEAD</code>——注意<b>三点</b>：
+  从 merge-base 度量，避免分叉噪音。
+</p>
+
+<h2>2. 两根轴各查什么</h2>
+<div class="axis">
+  <div class="col">
+    <h3>Standards 轴（规矩对不对）</h3>
+    <p><b>primary source：仓库自己的文档</b>——CODING_STANDARDS.md、CONTRIBUTING.md 等"代码该怎么写"的文件。</p>
+    <p>其上<b>永远携带 smell baseline</b>：Fowler《Refactoring》ch.3 的 12 个 code smells（仓库什么都没文档化时也适用）。</p>
+    <p>两条铁律：仓库优先、永远是 judgement call。</p>
+  </div>
+  <div class="col">
+    <h3>Spec 轴（东西对不对）</h3>
+    <p><b>primary source：源头 issue/spec</b>——commit 里的 issue 引用 → 用户传的 path → spec 文件 → 问用户。</p>
+    <p>找不到就跳过并报告 "no spec available"——<b>绝不从代码反推需求</b>。</p>
+    <p>上一课的闭环终点：它还检查"只在约定的 seam 写了测试"。</p>
+  </div>
+</div>
+
+<h2>3. 为什么要隔离（本课的核心）</h2>
+<blockquote>
+  "一个改动可以通过一轴而挂掉另一轴"：每条标准都对、却实现了错误的东西（Standards 过 Spec 挂）；
+  精确做了 issue 要求的事、却破坏项目约定（Spec 过 Standards 挂）。
+  <b>混合裁定会让通过的一轴掩盖挂掉的那轴。</b>
+</blockquote>
+<ul>
+  <li><b>两个并行 sub-agent</b>：两轴推理互不污染 context。金句："同一 context 评审自己不是评审，是带 slash command 的<b>确认偏误</b>。"</li>
+  <li><b>报告并排呈现、永不合并或重排</b>：分离的全部意义就是防止一轴遮蔽另一轴。</li>
+  <li><b>sub-agent 输出 400 词上限 + 每个 finding 强制引用代码位置</b>："sub-agent 输出是 hypothesis 不是 evidence"——引用让你能逐条核验。</li>
+  <li>已知边界（docs 诚实写的）：<b>无收敛保证</b>——"把它当线索清单处理，别跑到它干净为止（永远不会）"。</li>
+</ul>
+
+<h2>4. 12 个 Fowler smells 速览</h2>
+<p>Standards 轴的基线。完整 12 个：<b>神秘命名</b>、<b>重复代码</b>、<b>依恋情结</b>、<b>数据泥团</b>、
+<b>基本类型偏执</b>、<b>重复开关</b>、<b>霰弹式修改</b>、<b>发散式变化</b>、<b>夸夸其谈通用性</b>、
+<b>消息链</b>、<b>中间人</b>、<b>被拒绝的遗赠</b>。每个都配"是什么 → 怎么修"，且<b>仓库文档明确认可的，抑制对应 smell</b>
+（本地约定赢了通用基线）。</p>
+<p>下面练最常见的四个。</p>
+
+<h2>5. Smell 识别三连练</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 1：</p>
+  <pre class="example"><code>function createOrder(customer, email, phone, address) {...}
+function notify(customer, email, phone, address) {...}
+function invoice(customer, email, phone, address) {...}
+// 同一组参数到处结伴出现</code></pre>
+  <button>神秘命名</button>
+  <button data-correct>数据泥团</button>
+  <button>依恋情结</button>
+  <button>消息链条</button>
+  <p class="explain">✅ Data Clumps：总是一起出现的一坨参数，说明它们本是一个概念（Recipient/Contact）——收成一个类型，签名和调用点一起变干净。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 2：</p>
+  <pre class="example"><code>// 同一个 switch 在 5 个文件里重复出现
+switch (user.role) {
+  case 'admin': ...
+  case 'editor': ...
+}</code></pre>
+  <button>神秘命名</button>
+  <button>霰弹修改</button>
+  <button data-correct>重复开关</button>
+  <button>夸夸其谈</button>
+  <p class="explain">✅ Repeated Switches：按类型分派的知识散落多处，加一个 role 要改 5 个文件——和"霰弹式修改"（一改就到处开枪）互为因果。修法通常是多态或查表，把分派收进一处。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">练习 3：</p>
+  <pre class="example"><code>order.getCustomer().getAccount()
+    .getBilling().charge(99);</code></pre>
+  <button>依恋情结</button>
+  <button data-correct>消息链条</button>
+  <button>数据泥团</button>
+  <button>重复开关</button>
+  <p class="explain">✅ Message Chains：caller 沿着一串对象摸进别人的内部关系——它和第 4 课的深模块词汇直接挂钩：知道这条链 = 知道太多 interface。修法是把"向 Billing 收费"变成 order 身上的一个入口。</p>
+</div>
+
+<h2>6. 和 /retro 是一对</h2>
+<p>
+  retro 复盘 session 后提出的环境改进，<b>喂养的正是 Standards 轴</b>：
+  "Mechanical mistakes become deterministic checks; judgement calls become coding standards"
+  （机械错误变成确定性检查，判断题变成 CODING_STANDARDS.md 规则）。
+  而规则放哪也有讲究——<b>"the review agent should be responsible for imposing coding standards"</b>：
+  实现 agent 的 context 压力最大，review agent 只拿 diff、有空间执法。
+  下次构建从更好的环境开始，这就是主线的闭环。
+</p>
+
+<h2>7. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. 为什么要拆成两根轴？</p>
+  <button>为了让评审速度变得更快</button>
+  <button data-correct>通过一轴可能挂掉另一轴</button>
+  <button>为了兼容各家的代码托管</button>
+  <button>为了让子代理省下不少钱</button>
+  <p class="explain">✅ 混合裁定会让通过的一轴掩盖挂掉的那轴；隔离 + 并排呈现是防遮蔽的全部意义（顺带防"同 context 评审自己"的确认偏误）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. Standards 轴的 primary source 是什么？</p>
+  <button>模型自带的最佳实践库</button>
+  <button>网上流行的代码规范集</button>
+  <button>工单里面写的验收标准</button>
+  <button data-correct>仓库文档加上气味基线</button>
+  <p class="explain">✅ 仓库自己的 CODING_STANDARDS.md 等 + 永远携带的 Fowler 12 smells。"通用评审 skill 不知道你的标准"——工单是 Spec 轴的 source。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. 仓库文档化标准和 Fowler smell 冲突时怎么办？</p>
+  <button data-correct>以仓库文档化的为准</button>
+  <button>以福勒气味作为准绳</button>
+  <button>每次都提问用户裁决</button>
+  <button>把冲突项直接跳过去</button>
+  <p class="explain">✅ "仓库优先"：文档化标准明确认可的，抑制对应 smell——尊重刻意为之的本地约定，这是它和通用 linter 的本质区别。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. 找不到 spec 来源时，Spec 轴怎么办？</p>
+  <button>从代码里反推出需求</button>
+  <button>两轴合并成单一报告</button>
+  <button data-correct>跳过并声明没有规格</button>
+  <button>拒绝评审并直接退出</button>
+  <p class="explain">✅ 报告 "no spec available" 并只跑 Standards 轴——"绝不从代码反推需求"：把实现读成需求，等于拿学生答案当标准答案（和 tautological 测试同构的病）。</p>
+</div>
+
+<h2>8. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md" target="_blank">code-review 的 SKILL.md</a>
+  ——五步流程和两轴 brief 的原文。想深挖 smells 就读 Fowler《Refactoring》第 3 章
+  （Standards 轴的 baseline 出处，每个 smell 配"是什么 → 怎么修"）。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："拿我最近一次 commit，按两轴给我各出一份报告"、"12 个 smells 里剩下 8 个各是什么？"、
+  "为什么 implement-spec 中途跑 code-review 会死循环？"——或者在你自己的分支上真的跑一次
+  <code>/code-review</code>，对照本课看两份报告是不是真的并排、不合并。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0005-tdd-anti-patterns.html">0005 tdd 三大反模式</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>

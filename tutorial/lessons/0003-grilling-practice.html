@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第三课 · grilling 实操演练</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .round { border: 1px solid var(--rule); border-radius: 12px; padding: 1.1rem 1.4rem; margin: 1.25rem 0; background: #fff; }
+  .round h3 { margin-top: 0; }
+  .qcard { border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 0.9rem 0; background: var(--paper); }
+  .qcard .qt { font-weight: 700; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .qcard .qb { font-size: 0.92rem; color: var(--ink-soft); margin: 0.3rem 0 0.6rem; }
+  .qcard button { display: block; width: 100%; text-align: left; font: inherit; font-size: 0.92rem;
+    padding: 0.5rem 0.85rem; margin: 0.35rem 0; border: 1px solid var(--rule); border-radius: 8px;
+    background: #fff; cursor: pointer; line-height: 1.5; }
+  .qcard button:hover { border-color: var(--accent); }
+  .qcard button.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .rec::after { content: " ➡️ 推荐"; font-size: 0.78rem; color: var(--accent); font-weight: 400; }
+  .factnote { border-left: 3px solid var(--ok); background: #eaf4ee; border-radius: 0 8px 8px 0;
+    padding: 0.6rem 0.9rem; font-size: 0.88rem; }
+  .simbtn { font: 700 0.95rem "PingFang SC", "Microsoft YaHei", sans-serif; padding: 0.6rem 1.3rem;
+    border-radius: 8px; border: none; background: var(--accent); color: #fff; cursor: pointer; margin-top: 0.4rem; }
+  .simbtn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .simwarn { color: #c0392b; font-size: 0.85rem; margin-top: 0.4rem; display: none; }
+  .settle li { margin: 0.4rem 0; }
+  .glossterm { font-weight: 700; }
+  code.path { background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.85em; }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0003 · 约 12 分钟</p>
+<h1>grilling 实操演练：坐上被拷问者的位置</h1>
+<p class="meta">
+  前置：<a href="./0002-main-flow-walkthrough.html">0002 主线工作流走查</a> ｜
+  配套阅读：<a href="../05-productivity篇.md" target="_blank">05 · grilling 节</a> ·
+  <a href="../reference/skills-cheatsheet.html" target="_blank">速查表</a> ｜
+  下一课：深模块词汇专题
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  你将在这页里<b>亲身经历一场被压缩的 grilling</b>：一个模糊想法 → 两轮提问 → 领域词汇与 ADR 落地。
+  完成后你第一次跑 <code>/grill-me</code> 时不会陌生，而且知道<b>怎么当一名好受访者</b>。
+</div>
+
+<h2>1. 开场：你的模糊想法</h2>
+<p>
+  设定：你用 Astro + GitHub Pages 维护一个技术博客，读者越来越多，
+  你想——<b>“给博客加个评论系统吧”</b>。就这一句。没有别的要求。
+</p>
+<p>
+  在真实场景里，你现在会在一个<b>全新对话</b>里敲 <code>/grill-me</code>（没有仓库压力时），
+  agent 立刻开始把你这句话拆成一棵<b>设计树</b>，并计算第一轮的 <b>frontier</b>：
+  前置已明确、现在就能问的问题。下面开始。每题选一个选项（<span class="rec">➡️ 推荐</span> 的含义是：
+  选它等于"yes，同意推荐"）。
+</p>
+
+<div id="sim"></div>
+
+<div id="settle" class="settle" style="display:none"></div>
+
+<h2>2. 复盘：刚才发生了什么</h2>
+<ul>
+  <li><b>Frontier 在动</b>：第二轮的问题是你第一轮的答案<b>解锁</b>的——你选了不同的登录策略，就会被问不同的后续问题。这就是"每轮答案重塑设计树"。</li>
+  <li><b>事实没来烦你</b>："博客用什么框架"这种问题 agent 自己派子代理去查了。你的时间只花在<b>决策</b>上。</li>
+  <li><b>词汇当场结晶</b>：会话中的关键概念当场写进 GLOSSARY——下次你说"评论者"，agent 不用再问是什么。</li>
+  <li><b>决策过了三道门才进 ADR</b>：不是所有决定都配 ADR；够不上门槛的只留在对话和 spec 里。</li>
+</ul>
+
+<div class="callout">
+  <span class="label">最重要的提醒：Passivity（被动）是失败模式</span>
+  在这场模拟里，每一题你都可以选非推荐项——那不是"答错"，那正是<b>你做决定</b>的时刻。
+  真实会话的验收标准（docs 原文）："You disagree with something. A session with no pushback
+  from you is a session you didn't need."（一路 "agreed, agreed" 的会话，是你不需要的会话。）
+</div>
+
+<h2>3. 现在去跑真实版</h2>
+<ol>
+  <li>开一个<b>全新对话</b>（不要在已有方案的对话上叠加；关掉 plan mode，否则 agent 急着出计划不肯问）。</li>
+  <li>没有仓库压力的想法（写作、决策、人生）敲 <code>/grill-me</code>；在自己项目里敲 <code>/grill-with-docs</code>。</li>
+  <li>自检三件事：① 每轮你是否至少 pushback 过一次？② 它有没有问你"你能自己查到的事实"？（有的话指出来）③ 结束时它是否停下来等你确认共识，而不是直接开写？</li>
+  <li>卡在"跑起来才知道"的问题上？让它转 <code>/prototype</code>；卡在"只有某个人知道"的问题上？用 <code>/to-questionnaire</code>。</li>
+</ol>
+
+<h2>4. 检验一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. grilling 里"查证事实"是谁的工作？</p>
+  <button>用户负责提供全部的事实</button>
+  <button>谁先发现就由谁负责去查</button>
+  <button data-correct>模型负责并自己派工去查</button>
+  <button>事实与决策都由用户回答</button>
+  <p class="explain">✅ "Finding facts is your job, never the user's."——agent 派子代理查环境事实，绝不拿你能自己查到的东西烦你；决策才归用户。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. grilling 会话什么时候算结束？</p>
+  <button data-correct>前沿清空且用户确认共识</button>
+  <button>问题数量达到上限的时候</button>
+  <button>模型写出完整方案的时候</button>
+  <button>问到用户开始疲劳的时候</button>
+  <p class="explain">✅ frontier 为空 = 没有沉默假设；但"Do not act on it until the user confirms"——确认门防止较弱的模型问两三个问题就跑去写 outline。（刻意没有问题数上限。）</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. 为什么每个问题都附推荐答案？</p>
+  <button>为了让会话看起来更专业</button>
+  <button>为了方便模型提前做决定</button>
+  <button>为了统计用户同意的比例</button>
+  <button data-correct>为了把盘问变成审批纠偏</button>
+  <p class="explain">✅ 措辞让"yes"即接受推荐——把开放式盘问变成快速审批 + 纠偏，你可以按编号整轮作答（"1 yes, 2 选第二个, 3 no"）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. 哪种问题应该转去 /prototype 而不是硬聊？</p>
+  <button>答案在别人头脑里的问题</button>
+  <button data-correct>必须运行才能回答的问题</button>
+  <button>需要查阅外部文档的问题</button>
+  <button>涉及到预算与排期的问题</button>
+  <p class="explain">✅ "ungrillable"问题（状态机对不对？UI 该长啥样？）靠谈无法回答，硬谈会越拖越长——转 prototype 做可抛弃原型。别人的脑袋 → to-questionnaire；外部文档 → research。</p>
+</div>
+
+<h2>5. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md" target="_blank">grilling 的 SKILL.md 原文</a>
+  ——只有 30 行，是全仓库被复用最多的原语。读一遍你会认出本课模拟里的每个机制：rounds、frontier、推荐答案、事实/决策分工、确认门。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  比如："和我用中文 grilling 一次，主题随便你挑"、"grill-with-docs 会往 GLOSSARY 写什么？
+  给我看真实例子"、"如果我不喜欢一轮多问，怎么办？"（答案：往 CLAUDE.md 加一行
+  "When grilling, ask one question at a time"——docs 说这是 supported setting，不是 workaround。）
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  上一课：<a href="./0002-main-flow-walkthrough.html">0002 主线工作流走查</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a>
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+<script>
+(function () {
+  var state = { round: 1, answers: {} };
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function qcard(q, round) {
+    var card = el('div', 'qcard');
+    card.appendChild(el('p', 'qt', '❓ <b>Q' + q.id + '</b> · ' + q.title));
+    card.appendChild(el('p', 'qb', q.body));
+    q.options.forEach(function (opt, i) {
+      var btn = el('button', null, (opt.rec ? '<span class="rec">' + opt.text + '</span>' : opt.text));
+      btn.addEventListener('click', function () {
+        card.querySelectorAll('button').forEach(function (b) { b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        state.answers[q.id] = opt.key;
+        warn.style.display = 'none';
+      });
+      card.appendChild(btn);
+    });
+    var warn = el('p', 'simwarn');
+    card.appendChild(warn);
+    return { card: card, warn: warn };
+  }
+
+  function render() {
+    var sim = document.getElementById('sim');
+    sim.innerHTML = '';
+
+    if (state.round === 1) {
+      var r1 = el('div', 'round');
+      r1.appendChild(el('h3', null, '第 1 轮 · frontier（3 个问题）'));
+      var q1 = qcard({ id: 1, title: '登录门槛', body: '谁可以发评论？',
+        options: [
+          { key: 'oauth', text: '要登录：用 GitHub OAuth', rec: true },
+          { key: 'anon',  text: '不登录：匿名就能发' },
+          { key: 'mixed', text: '折中：匿名可发，留邮箱验证' }
+        ]}, 1);
+      var q2 = qcard({ id: 2, title: '托管方案', body: '评论数据存在哪？',
+        options: [
+          { key: 'giscus', text: 'Giscus（存进 GitHub Discussions）', rec: true },
+          { key: 'self',   text: '自建：数据库 + API + 后台' },
+          { key: 'disqus', text: 'Disqus（第三方托管）' }
+        ]}, 1);
+      var fact = el('div', 'factnote',
+        '❓ <b>Q3</b> · 博客用什么框架部署？——<b>这题没有问你</b>：agent 已派子代理查过，' +
+        '<code>astro.config.mjs</code> + GitHub Pages（Actions 部署）。<i>事实是 agent 的工作；你的时间只花在决策上。</i>');
+      r1.appendChild(q1.card); r1.appendChild(q2.card); r1.appendChild(fact);
+      var btn = el('button', 'simbtn', '提交回答 → 进入第 2 轮');
+      var gwarn = el('p', 'simwarn', '还有问题没选：每个 ❓ 都要选一个选项。');
+      btn.addEventListener('click', function () {
+        if (!state.answers[1] || !state.answers[2]) {
+          gwarn.style.display = 'block';
+          return;
+        }
+        state.round = 2; render();
+      });
+      r1.appendChild(btn);
+      r1.appendChild(gwarn);
+      sim.appendChild(r1);
+    } else if (state.round === 2) {
+      var r2 = el('div', 'round');
+      r2.appendChild(el('h3', null, '第 2 轮 · frontier 被你的答案重塑了'));
+      var followup;
+      if (state.answers[1] === 'oauth') {
+        followup = { id: 3, title: '匿名读者怎么办', body: '你的选择（要登录）解锁了这个问题：没有 GitHub 账号的读者呢？',
+          options: [
+            { key: 'ro',    text: '只读：登录才能发言', rec: true },
+            { key: 'email', text: '邮箱验证后可发言' }
+          ]};
+      } else {
+        followup = { id: 3, title: '垃圾评论怎么防', body: '你的选择（不设登录门槛）解锁了这个问题：垃圾评论怎么挡？',
+          options: [
+            { key: 'honeypot', text: '蜜罐字段 + 限流', rec: true },
+            { key: 'moderate', text: '全部进人工审核队列' }
+          ]};
+      }
+      var q3 = qcard(followup, 2);
+      var q4 = qcard({ id: 4, title: '评论通知', body: '有人回复评论时怎么通知作者？',
+        options: [
+          { key: 'gh',   text: '复用 GitHub 通知（零成本）', rec: true },
+          { key: 'mail', text: '自建邮件订阅（要接邮件服务）' }
+        ]}, 2);
+      r2.appendChild(q3.card); r2.appendChild(q4.card);
+      var btn2 = el('button', 'simbtn', '提交回答 → 结束会话');
+      var gwarn2 = el('p', 'simwarn', '还有问题没选：每个 ❓ 都要选一个选项。');
+      btn2.addEventListener('click', function () {
+        if (!state.answers[3] || !state.answers[4]) {
+          gwarn2.style.display = 'block';
+          return;
+        }
+        state.round = 3; render();
+      });
+      r2.appendChild(btn2);
+      r2.appendChild(gwarn2);
+      sim.appendChild(r2);
+    } else {
+      document.getElementById('sim').innerHTML =
+        '<div class="callout"><span class="label">Frontier 为空 · 会话结束</span>' +
+        '没有沉默假设了。<b>但 agent 现在还不会动手</b>——它停下来等你确认共识' +
+        '（确认门）。你确认之后，产出去哪？往下看。</div>';
+      var s = document.getElementById('settle');
+      var oauth = state.answers[1] === 'oauth';
+      s.innerHTML =
+        '<h2>这场会话留下了什么</h2>' +
+        '<ul>' +
+        '<li><code class="path">GLOSSARY.md</code> 新增（当场写入，不是会后补写）：' +
+        '<span class="glossterm">Commenter（评论者）</span>= 通过 GitHub OAuth 标识的发言者；' +
+        '<span class="glossterm">Thread（话题）</span>= 围绕一篇文章的评论树。</li>' +
+        '<li><b>ADR 候选</b>（三道门逐条检验）："评论托管选 Giscus 而非自建"——' +
+        '① 难逆？（迁移历史评论成本大 ✓）② 无上下文会惊讶？（"为什么不用数据库？" ✓）' +
+        '③ 真权衡？（自建可定制 vs 零维护 ✓）→ 三门全过，<i>offer</i> 写入 ADR-0001。</li>' +
+        '<li><b>没进 ADR 的决定</b>：' + (oauth ? '匿名读者只读' : '蜜罐 + 限流') +
+        '——易逆、不惊讶，留在对话里，将来随 spec 走。</li>' +
+        '<li><b>下一步</b>：这是多 session 的活吗？是 → <code>/to-spec</code>（在<b>同一个窗口</b>里）；' +
+        '只是小改动 → 直接 <code>/implement</code>。</li>' +
+        '</ul>' +
+        '<p class="meta">注意：真实的 grilling 会有 3 轮左右、每轮问题更多——本模拟压缩到 2 轮 4 问以适应你的工作记忆。</p>';
+      s.style.display = 'block';
+    }
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>

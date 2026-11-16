@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一课 · 调用类型与失败模式</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+
+<p class="kicker">Lesson 0001 · 约 8 分钟</p>
+<h1>调用类型与失败模式：读懂这个仓库的钥匙</h1>
+<p class="meta">
+  前置：无 ｜ 覆盖：<a href="../01-全景图.md" target="_blank">01 全景图</a> ·
+  <a href="../02-设计原则.md" target="_blank">02 设计原则</a> ｜
+  下一课：主线工作流走查
+</p>
+
+<div class="callout">
+  <span class="label">本课的目标（一个 Win）</span>
+  学完这课，你打开仓库 README 时能立刻看懂它为什么把 skill 分成两组，
+  并且能对任何一个 skill 说出：它是<b>谁</b>在什么时机触发的、它对应哪个失败模式。
+</div>
+
+<h2>1. 先记住四种痛</h2>
+<p>
+  作者在 <a href="https://github.com/mattpocock/skills" target="_blank">README</a> 里说，
+  这 38 个 skill 全都为了对抗 agent 编码的四种真实失败（详见
+  <a href="../01-全景图.md" target="_blank">01 全景图</a>）：
+</p>
+<table>
+  <tr><th>#</th><th>失败模式</th><th>一句话解药</th></tr>
+  <tr><td>①</td><td><b>没做我想要的</b>（对齐失败）</td><td>动手前让 agent 反过来拷问你（grilling 家族）</td></tr>
+  <tr><td>②</td><td><b>太啰嗦</b>（语言不共享）</td><td>维护 GLOSSARY.md 共享语言（domain-modeling）</td></tr>
+  <tr><td>③</td><td><b>代码跑不起来</b>（反馈缺失）</td><td>红绿循环 + 诊断循环（tdd、diagnosing-bugs）</td></tr>
+  <tr><td>④</td><td><b>造出大泥球</b>（设计腐化）</td><td>深模块词汇 + 深化普查（codebase-design 等）</td></tr>
+</table>
+
+<h2>2. 唯一的分类轴：谁能触发它</h2>
+<p>
+  仓库不按"功能"分类，只按<b>调用权限</b>分两类（定义见
+  <a href="https://github.com/mattpocock/skills/blob/main/.agents/invocation.md" target="_blank">.agents/invocation.md</a>）：
+</p>
+<table>
+  <tr><th></th><th>user-invoked</th><th>model-invoked</th></tr>
+  <tr><td><b>谁能触发</b></td><td>只有你，手动敲命令</td><td>agent 自主判断触发，你也可以手动</td></tr>
+  <tr><td><b>角色</b></td><td>编排者（orchestrator）</td><td>纪律承载者（reusable discipline）</td></tr>
+  <tr><td><b>例子</b></td><td><code>grill-with-docs</code>、<code>implement</code></td><td><code>grilling</code>、<code>tdd</code>、<code>code-review</code></td></tr>
+</table>
+
+<p><b>一条不变式</b>贯穿全仓库：</p>
+<blockquote>
+  user-invoked 可以调用 model-invoked，但<b>绝不调用另一个 user-invoked</b>。
+  所以主链条（grill → spec → tickets → implement → review → retro）每一环都由<b>你</b>驱动。
+</blockquote>
+
+<h3>为什么这样分？</h3>
+<ul>
+  <li><b>防乱触发</b>：user-invoked 被两个开关双重排除在模型可达范围外——"agent 永远不会自己发起对你的访谈"，这是硬保证。</li>
+  <li><b>纪律复用</b>：<code>grilling</code> 这一份访谈纪律，被 grill-me、grill-with-docs、triage、wayfinder、improve-codebase-architecture 五个入口复用——改一次，全体受益。</li>
+  <li><b>人是所有者</b>：入口由人掌控，"怎么做才对"交给 agent——查证是 agent 的事，拍板是你的事。</li>
+</ul>
+
+<h2>3. 检验一下</h2>
+<p>四道题，每题点一个答案，立即反馈。（答错也没关系， explanations 里都有出处。）</p>
+
+<div class="quiz" data-quiz>
+  <p class="q">1. 哪个说法准确描述了 user-invoked skill？</p>
+  <button data-correct>只有人类手动输入才能触发</button>
+  <button>模型在任务合适时自动触发</button>
+  <button>用户和模型双方都能触发</button>
+  <button>安装插件以后任何人能触发</button>
+  <p class="explain">✅ user-invoked 只能由人手动触发（"user-invoked 的 description 是写给人类看的一行摘要"）。用户和模型都能触发的是 model-invoked。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">2. grilling 里的 "frontier" 指什么？</p>
+  <button>已经被用户否决的问题集合</button>
+  <button>访谈总共需要进行的轮数</button>
+  <button data-correct>前置已敲定现在能问的问题</button>
+  <button>会话结束时仍未解决的分歧</button>
+  <p class="explain">✅ frontier = 前置决策已全部敲定、"现在就能问、不用猜还没听到的答案"的问题集合。一轮问完整个 frontier，frontier 为空才算结束。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">3. 哪条规则约束 skill 之间的调用？</p>
+  <button>任何技能都能随意调用其余技能</button>
+  <button data-correct>用户型可以调用模型型技能</button>
+  <button>模型型可以调用用户型技能</button>
+  <button>两种技能之间完全不能调用</button>
+  <p class="explain">✅ user-invoked 可通过 Skill tool 调用 model-invoked（如 implement 调 tdd），但绝不调另一个 user-invoked。链条由用户驱动。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">4. "大泥球"（设计腐化）的主要解药是哪组？</p>
+  <button>拷问式访谈加上问卷的外发</button>
+  <button>红绿测试循环加上诊断循环</button>
+  <button>交接文档加上交接拉起变体</button>
+  <button data-correct>深化普查加上模块设计词汇</button>
+  <p class="explain">✅ 失败模式④的解药是 improve-codebase-architecture（深化普查）+ codebase-design（深模块词汇），以及把设计意识前置的 to-spec / to-tickets。访谈对应①，红绿循环对应③。</p>
+</div>
+
+<h2>4. 收尾</h2>
+<div class="callout">
+  <span class="label">推荐的首要资料</span>
+  <a href="https://github.com/mattpocock/skills#why-these-skills-exist" target="_blank">README 的 "Why These Skills Exist" 四节</a>
+  ——作者亲口讲四种失败模式和它们的解药，5 分钟读完，是理解整个仓库的钥匙。
+</div>
+
+<div class="callout">
+  <span class="label">有任何不清楚的？直接问你的 agent</span>
+  它是你的老师。可以问它："带我看看 grilling 的 SKILL.md 原文"、
+  "为什么 grill-me 只有一行？"、"用 implement-spec 和逐张 implement 各适合什么场景？"——
+  或者让它带你走一遍 <a href="../07-工作流组合.md" target="_blank">07 工作流组合</a> 的完整旅程。
+</div>
+
+<footer>
+  <a href="../README.md">← 返回教程目录</a> ｜
+  速查：<a href="../reference/skills-cheatsheet.html">38 skills 一页表</a> ｜
+  下一课：主线工作流走查（未创建，找 agent 要）
+</footer>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+
+</body>
+</html>
