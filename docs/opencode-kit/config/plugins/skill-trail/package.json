@@ -1,0 +1,38 @@
+{
+  "name": "opencode-skill-trail",
+  "version": "0.6.0",
+  "description": "OpenCode 2.x plugin: session sidebar timeline of skill activations (you vs auto badges, English sidebar wording), with a durable per-session audit trail.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./tui": "./tui.tsx"
+  },
+  "files": [
+    "index.ts",
+    "trail.ts",
+    "store.ts",
+    "trail.test.ts",
+    "store.test.ts",
+    "tui.tsx",
+    "demo.mjs",
+    "GLOSSARY.md"
+  ],
+  "scripts": {
+    "test": "node --test trail.test.ts store.test.ts",
+    "typecheck": "tsc --noEmit",
+    "demo": "node demo.mjs"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangCan/opencode-plugins-v2.git",
+    "directory": "plugins/skill-trail"
+  }
+}

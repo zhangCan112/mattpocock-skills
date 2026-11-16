@@ -1,0 +1,8 @@
+{
+  "source": "https://github.com/vercel-labs/skills/tree/main/skills/find-skills",
+  "source_type": "git",
+  "repo_url": "https://github.com/vercel-labs/skills",
+  "subpath": "skills/find-skills",
+  "local_path": null,
+  "installed_at": "2026-08-03T21:18:24.031291"
+}

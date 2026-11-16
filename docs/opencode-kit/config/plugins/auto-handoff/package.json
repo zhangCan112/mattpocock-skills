@@ -1,0 +1,43 @@
+{
+  "name": "opencode-auto-handoff",
+  "version": "0.29.0",
+  "description": "OpenCode 2.x plugin: cross-session relay tool handoff_to - creates a fresh session born on a specified agent post with that agent's configured model applied (falls back to the host default when the agent has none or the model is unavailable), injects a successor-oriented six-section thin handoff, and delivers the task prompt. Includes a TUI auto-follow half and a right-side relay-chain panel (one line per hop, click/enter to jump).",
+  "type": "module",
+  "exports": {
+    ".": "./auto-handoff.ts",
+    "./tui": "./tui.ts"
+  },
+  "files": [
+    "auto-handoff.ts",
+    "handoff-core.ts",
+    "handoff-core.test.ts",
+    "tui.ts",
+    "tui-core.ts",
+    "chain-panel.tsx"
+  ],
+  "scripts": {
+    "test": "node --test handoff-core.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.8.0",
+    "@opentui/solid": ">=0.8.0",
+    "solid-js": ">=1.9.0"
+  },
+  "devDependencies": {
+    "@opentui/core": "^0.8.3",
+    "@opentui/solid": "^0.8.3",
+    "@types/node": "latest",
+    "solid-js": "^1.9.18",
+    "typescript": "5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangCan/opencode-plugins-v2.git",
+    "directory": "plugins/auto-handoff"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "opencode-handoff-compaction",
+  "version": "0.23.0",
+  "description": "OpenCode 2.x plugin: compaction as same-agent metabolism - six-section handoff template (voiced for the actual post-compaction reader: a fresh agent with no memory of the conversation - Matt's original audience wording, restored in v0.18.0 after v0.11.0's same-session voice was falsified; rules adopted from Matt Pocock's upstream handoff skill) replaces the default summary on every compaction, smart-zone auto-triggered compaction at a configurable absolute-or-percent token line (default 150k, measured per model step, hysteresis + in-flight debounce + re-arm after each compaction + post-compaction floor guard + fire-at-the-crossing-step: the moment a model step settles above the line the compaction is issued - the host runs it at its next safe point - mid-work included, the template's live-thread section speaks for in-flight work; a v0.7.0-v0.20.0 defer-until-settled layer that held the trigger until all in-flight work settled was removed in v0.21.0 after it hollowed out the absolute line on long autonomous turns; a user interrupt (Esc, execution.interrupted reason user) cancels auto-triggering for that arm cycle), completed-turn final answers (text-only last assistant message at compaction time) are mechanically spliced into the handoff document verbatim as a seventh section 最终交付（原文保全） (plugin-side splice, not generator restatement; no length cap; mid-work states add nothing and keep the six sections unchanged), summaries persisted to tmpdir; TUI part prepends a sidebar status line with the session's compaction count (completed/failed/running, latest at HH:MM) plus a second line with the session's cumulative billed tokens (all assistant steps, input+output+reasoning+cache, never reset by compaction). v0.20.0 restored the v0.18 trigger wholesale after the v0.19 native-config detour (host compaction.buffer percent per window) broke on mixed-window fleets - one static global percent cannot hold a single absolute line across GPT-series and 1M GLM windows; v0.21.0 then stripped the defer-until-settled hold so the line actually bites during long autonomous turns (\"我要可以自动压的\"); v0.22.0 layered models.json resolution - project .opencode/src layouts first, then a global ~/.config/opencode/models.json with key-level fallback, so a project file overrides only the keys it defines (built-in 150k stays the last resort); v0.23.0 made the line per-agent and per-model: within each file layer an agents map (project layer only) then profiles matched by the session's current model (models: [\"provider/id\"], declaration order, variant ignored) override the active-profile fallback - full chain: project agent > project model > project active > global model > global active > built-in default, resolved per session identity (Session.Info agent?/model?, re-pulled every event so mid-session switches re-line immediately) and cached by cwd+model+agent.",
+  "type": "module",
+  "exports": {
+    ".": "./handoff-compaction.ts",
+    "./tui": "./tui.tsx"
+  },
+  "files": [
+    "handoff-compaction.ts",
+    "compaction.ts",
+    "compaction.test.ts",
+    "tui.tsx"
+  ],
+  "scripts": {
+    "test": "node --test compaction.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangCan/opencode-plugins-v2.git",
+    "directory": "plugins/handoff-compaction"
+  }
+}

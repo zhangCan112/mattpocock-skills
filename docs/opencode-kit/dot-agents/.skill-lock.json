@@ -1,0 +1,62 @@
+{
+  "version": 3,
+  "skills": {
+    "code-review-excellence": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/wshobson/agents.git",
+      "skillPath": "plugins/developer-essentials/skills/code-review-excellence/SKILL.md",
+      "skillFolderHash": "89b2a6a234f6368b12f0232e1d77bd5ed894115114edf67eb1f2976e153664c0",
+      "installedAt": "2026-08-03T13:21:48.866Z",
+      "updatedAt": "2026-08-03T13:21:48.866Z"
+    },
+    "game-ui-ux": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/gamedev-skills/awesome-gamedev-agent-skills.git",
+      "skillPath": "skills/disciplines/game-ui-ux/SKILL.md",
+      "skillFolderHash": "7c060b27b9d3c9a91b9607e9830dc4ffda653b478a9540ab2535070c93401d61",
+      "pluginName": "disciplines",
+      "installedAt": "2026-11-10T01:00:03.887Z",
+      "updatedAt": "2026-11-10T01:00:03.887Z"
+    },
+    "threejs-game-ui-designer": {
+      "source": "majidmanzarpour/threejs-game-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/majidmanzarpour/threejs-game-skills.git",
+      "skillPath": "skills/threejs-game-ui-designer/SKILL.md",
+      "skillFolderHash": "9b3ad0452a34e9b5c7296c388cfa38652eaab6a4f74e00e0182a17de06856b20",
+      "installedAt": "2026-11-10T01:00:22.946Z",
+      "updatedAt": "2026-11-10T01:00:22.946Z"
+    },
+    "create-game-assets": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/gamedev-skills/awesome-gamedev-agent-skills.git",
+      "skillPath": "skills/disciplines/create-game-assets/SKILL.md",
+      "skillFolderHash": "3bd438570eeffc5404ce4626c3d6c909be2788d6a5096f04f1aecb10546c6c30",
+      "pluginName": "disciplines",
+      "installedAt": "2026-11-10T01:00:26.287Z",
+      "updatedAt": "2026-11-10T01:00:26.287Z"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/emilkowalski/skills.git",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "skillFolderHash": "55735a70a886326ee8ba1dd4d1ee040e4e9503a536891467e4ed7e114a69b0dd",
+      "installedAt": "2026-11-12T02:32:36.897Z",
+      "updatedAt": "2026-11-12T02:32:36.897Z"
+    },
+    "aura-asset-images": {
+      "source": "mengto/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mengto/skills.git",
+      "skillPath": "agent-skills/media/aura-asset-images/SKILL.md",
+      "skillFolderHash": "a42439aa40acd4113564f8ae4902b1bea5c5c24de749bd27ca79efeda2bcb42a",
+      "installedAt": "2026-11-12T02:33:01.739Z",
+      "updatedAt": "2026-11-12T02:33:01.739Z"
+    }
+  },
+  "dismissed": {}
+}
