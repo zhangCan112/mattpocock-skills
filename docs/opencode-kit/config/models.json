@@ -1,6 +1,0 @@
-{
-  "active": "main",
-  "profiles": {
-    "main": { "smart_zone_tokens": 180000 }
-  }
-}
